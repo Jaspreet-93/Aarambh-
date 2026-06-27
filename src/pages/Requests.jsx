@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
-import { CheckCircle, XCircle, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Search, Filter, Inbox } from 'lucide-react';
+import Sidebar from '../components/Sidebar';
+import Header from '../components/Header';
 
 const Requests = () => {
   const { authHeaders, API_URL, approveRequest, rejectRequest, addToast } = useContext(AppContext);
   const [requests, setRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterRole, setFilterRole] = useState('all');
 
   const fetchRequests = async () => {
     try {
@@ -38,38 +42,83 @@ const Requests = () => {
     }
   };
 
-  return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--text-main)' }}>Registration Requests</h1>
-      </div>
+  const filteredRequests = requests.filter(req => {
+    const matchesSearch = (req.name || req.username || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = filterRole === 'all' || req.role === filterRole;
+    return matchesSearch && matchesRole;
+  });
 
-      <div className="prof-card" style={{ padding: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', color: 'var(--text-muted)' }}>
-          <Clock size={20} />
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Pending Approvals</h2>
+  return (
+    <>
+      <Sidebar />
+      <main className="main-content">
+        <Header />
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+          <h1 style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--text-main)' }}>Registration Requests</h1>
         </div>
 
-        {isLoading ? (
-          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Loading requests...</div>
-        ) : requests.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)', background: 'var(--bg-main)', borderRadius: '8px' }}>
-            No pending registration requests at the moment.
+        <div className="prof-card" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <div className="flex-between" style={{ marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
+              <Clock size={20} />
+              <h2 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0 }}>Pending Approvals</h2>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <div style={{ position: 'relative' }}>
+                <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input 
+                  type="text" 
+                  placeholder="Search name..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="prof-input"
+                  style={{ paddingLeft: '2.2rem', paddingRight: '1rem', width: '200px' }}
+                />
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Filter size={16} color="var(--text-muted)" />
+                <select 
+                  value={filterRole} 
+                  onChange={(e) => setFilterRole(e.target.value)}
+                  className="prof-input"
+                  style={{ width: '130px' }}
+                >
+                  <option value="all">All Roles</option>
+                  <option value="student">Students</option>
+                  <option value="teacher">Teachers</option>
+                </select>
+              </div>
+            </div>
           </div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid var(--border)', color: 'var(--text-muted)' }}>
-                  <th style={{ padding: '1rem 0.5rem' }}>Role</th>
-                  <th style={{ padding: '1rem 0.5rem' }}>Name/Username</th>
-                  <th style={{ padding: '1rem 0.5rem' }}>Contact/Class</th>
-                  <th style={{ padding: '1rem 0.5rem', textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
+
+          {isLoading ? (
+            <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
+              <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite', fontSize: '2rem' }}>⟳</span>
+              <div style={{ marginTop: '1rem' }}>Loading requests...</div>
+            </div>
+          ) : filteredRequests.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '5rem 2rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <Inbox size={48} style={{ opacity: 0.5, marginBottom: '1rem' }} />
+              <div style={{ fontSize: '1.2rem', fontWeight: 500, color: 'var(--text-main)' }}>No Requests Found</div>
+              <div style={{ marginTop: '0.5rem' }}>There are no pending registrations matching your criteria.</div>
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="prof-table">
+                <thead>
+                  <tr>
+                    <th>Role</th>
+                    <th>Name/Username</th>
+                    <th>Contact/Class</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
               <tbody>
-                {requests.map(req => (
-                  <tr key={req.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                {filteredRequests.map(req => (
+                  <tr key={req.id}>
                     <td style={{ padding: '1rem 0.5rem', textTransform: 'capitalize' }}>
                       <span style={{ 
                         padding: '4px 12px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 500,
@@ -119,8 +168,9 @@ const Requests = () => {
             </table>
           </div>
         )}
-      </div>
-    </div>
+        </div>
+      </main>
+    </>
   );
 };
 

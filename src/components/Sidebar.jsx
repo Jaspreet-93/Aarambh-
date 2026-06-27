@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { LayoutDashboard, Users, BookOpen, CheckSquare, Settings, LogOut, IndianRupee, MessageSquare, Calendar, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, Users, BookOpen, CheckSquare, Settings, LogOut, IndianRupee, MessageSquare, Calendar, ClipboardList, Clock } from 'lucide-react';
 import { AppContext } from '../context/AppContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -68,6 +68,7 @@ const Sidebar = () => {
             <SidebarItem icon={BookOpen} label="Classes" active={path === '/classes'} onClick={() => navigate('/classes')} />
             <SidebarItem icon={Calendar} label="Calendar" active={path === '/calendar'} onClick={() => navigate('/calendar')} />
             <SidebarItem icon={BookOpen} label="Library" active={path === '/library'} onClick={() => navigate('/library')} />
+            <SidebarItem icon={Clock} label="System History" active={path === '/history'} onClick={() => navigate('/history')} />
           </>
         )}
 

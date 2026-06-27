@@ -1,5 +1,5 @@
 import React, { useContext, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AppContext } from '../context/AppContext';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
@@ -9,8 +9,9 @@ import { exportToPDF } from '../utils/exportUtils';
 const ClassDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { userRole, classes, students, fees, assignments, library, addStudent, sendMessage, addToast } = useContext(AppContext);
-  const [activeTab, setActiveTab] = useState('roster');
+  const location = useLocation();
+  const { userRole, classes, students, fees, assignments, library, addStudent, sendMessage, addToast, recordFeePayment } = useContext(AppContext);
+  const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'roster');
   
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [newStudentName, setNewStudentName] = useState('');
@@ -47,6 +48,13 @@ const ClassDetails = () => {
     } else {
       addToast(`Marked ${student.name} as ${status}`);
     }
+  };
+
+  const handleSendReminder = (fee) => {
+    const student = classStudents.find(s => s.id === fee.studentId);
+    const amountDue = fee.total - fee.paid;
+    sendMessage(student.parentPhone, 'SMS', `Reminder: Fees of Rs.${amountDue} for ${student.name} is due.`);
+    addToast(`Reminder sent to ${student.name}'s parent`, 'success');
   };
 
   return (
@@ -100,9 +108,14 @@ const ClassDetails = () => {
                     <td><span className="badge badge-secondary">{student.admission_number || `#${student.id}`}</span></td>
                     <td style={{ fontWeight: 500 }}>{student.name}</td>
                     <td style={{ color: 'var(--text-muted)' }}>{student.parentPhone}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button className="prof-btn prof-btn-secondary" style={{ color: 'var(--danger)', borderColor: 'var(--danger)', background: 'transparent', padding: '0.3rem 0.6rem', fontSize: '0.8rem' }} onClick={() => addToast('Feature coming soon: Remove Student', 'warning')}>
+                        Remove
+                      </button>
+                    </td>
                   </tr>
                 ))}
-                {classStudents.length === 0 && <tr><td colSpan="3" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No students enrolled.</td></tr>}
+                {classStudents.length === 0 && <tr><td colSpan="4" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No students enrolled.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -115,7 +128,7 @@ const ClassDetails = () => {
               <button onClick={handleExportFees} className="prof-btn prof-btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}><Download size={14} /> Export PDF</button>
             </div>
             <table className="prof-table">
-              <thead><tr><th>Student</th><th>Total Fee</th><th>Paid</th><th>Status</th></tr></thead>
+              <thead><tr><th>Student</th><th>Total Fee</th><th>Paid</th><th>Mode/Date</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>
                 {classFees.map(fee => {
                   const s = classStudents.find(st => st.id === fee.studentId);
@@ -124,11 +137,25 @@ const ClassDetails = () => {
                       <td>{s?.name}</td>
                       <td>Rs. {fee.total}</td>
                       <td>Rs. {fee.paid}</td>
+                      <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                        {fee.paymentMode ? `${fee.paymentMode} - ${fee.paymentDate}` : 'N/A'}
+                      </td>
                       <td><span className={`badge badge-${fee.status === 'Paid' ? 'success' : fee.status === 'Pending' ? 'warning' : 'danger'}`}>{fee.status}</span></td>
+                      <td style={{ display: 'flex', gap: '0.5rem' }}>
+                        {fee.status !== 'Paid' && (
+                          <>
+                            <button onClick={() => recordFeePayment(fee.studentId, fee.total - fee.paid, 'Cash', new Date().toLocaleDateString())} className="prof-btn prof-btn-secondary" style={{ color: 'var(--success)', borderColor: 'var(--success)', background: 'transparent', padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>Mark Paid</button>
+                            <button onClick={() => handleSendReminder(fee)} className="prof-btn" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>Send Reminder</button>
+                          </>
+                        )}
+                        {fee.status === 'Paid' && (
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic' }}>No actions needed</span>
+                        )}
+                      </td>
                     </tr>
                   )
                 })}
-                {classFees.length === 0 && <tr><td colSpan="4" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No fee records found.</td></tr>}
+                {classFees.length === 0 && <tr><td colSpan="5" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No fee records found.</td></tr>}
               </tbody>
             </table>
           </div>

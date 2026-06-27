@@ -2,11 +2,13 @@ import React, { useContext, useState } from 'react';
 import { AppContext } from '../context/AppContext';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
-import { Plus, Check, FileText } from 'lucide-react';
+import { Plus, Check, FileText, Users, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Assignments = () => {
   const { userRole, assignments, submissions, students, loggedInUser, addAssignment, classes } = useContext(AppContext);
   const [showModal, setShowModal] = useState(false);
+  const navigate = useNavigate();
   
   // New Assignment State
   const [newTitle, setNewTitle] = useState('');
@@ -52,36 +54,34 @@ const Assignments = () => {
         <Sidebar />
         <main className="main-content">
           <Header />
-          <div className="prof-card" style={{ flex: 1 }}>
+          <div style={{ flex: 1 }}>
             <div className="flex-between" style={{ marginBottom: '1.5rem' }}>
-              <h2 style={{ fontSize: '1.2rem', fontWeight: 600, margin: 0 }}>Assignments & Gradebook</h2>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 600, margin: 0 }}>Select Batch for Assignments</h2>
               <button onClick={() => setShowModal(true)} className="prof-btn"><Plus size={16} /> New Assignment</button>
             </div>
             
-            <table className="prof-table">
-              <thead><tr><th>Title</th><th>Subject</th><th>Due Date</th><th>Material</th><th>Submissions</th></tr></thead>
-              <tbody>
-                {displayAssignments.map(a => {
-                  const subsCount = submissions.filter(s => s.assignmentId === a.id).length;
-                  const totalInClass = students.filter(s => s.class === a.subject).length;
-                  return (
-                    <tr key={a.id}>
-                      <td style={{ fontWeight: 500 }}>{a.title}</td>
-                      <td><span className="badge badge-warning">{a.subject}</span></td>
-                      <td>{a.dueDate}</td>
-                      <td>
-                        {a.link ? (
-                          <a href={a.link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <FileText size={14} /> Open {a.type}
-                          </a>
-                        ) : 'None'}
-                      </td>
-                      <td>{subsCount} / {totalInClass}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1.5rem' }}>
+              {classOptions.map((cls) => {
+                const enrolled = students.filter(s => s.class === cls.name).length;
+                return (
+                  <div key={cls.id} className="prof-card" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '1rem' }} onClick={() => navigate(`/classes/${cls.id}`, { state: { activeTab: 'academics' } })}>
+                    <div className="flex-between">
+                      <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{cls.name}</h3>
+                      <span className="badge badge-warning">{cls.grade}</span>
+                    </div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Users size={16} /> {enrolled} Students Enrolled
+                    </div>
+                    <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'flex-end' }}>
+                      <button className="prof-btn prof-btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
+                        Manage Academics <ChevronRight size={14} style={{ marginLeft: '4px' }}/>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+              {classOptions.length === 0 && <p style={{ color: 'var(--text-muted)' }}>No classes available.</p>}
+            </div>
           </div>
           
           {showModal && (
@@ -112,7 +112,10 @@ const Assignments = () => {
                 </div>
 
                 {uploadMode === 'file' ? (
-                  <input type="file" accept={newType === 'PDF' ? "application/pdf" : "image/*"} onChange={e => setNewFile(e.target.files[0])} className="prof-input" style={{ marginTop: '1rem' }}/>
+                  <>
+                    <input type="file" accept="application/pdf, image/*" onChange={e => setNewFile(e.target.files[0])} className="prof-input" style={{ marginTop: '1rem' }}/>
+                    <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>Max file size: 50MB (PDF or Image)</small>
+                  </>
                 ) : (
                   <input type="url" placeholder="Material URL (Drive, Dropbox, etc)" value={newLink} onChange={e => setNewLink(e.target.value)} className="prof-input" style={{ marginTop: '1rem' }}/>
                 )}

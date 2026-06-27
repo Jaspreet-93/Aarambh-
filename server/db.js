@@ -89,6 +89,14 @@ const db = new sqlite3.Database(dbPath, (err) => {
         status TEXT DEFAULT 'pending'
       )`);
 
+      // Audit Logs Table (History)
+      db.run(`CREATE TABLE IF NOT EXISTS audit_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        action TEXT NOT NULL,
+        details TEXT NOT NULL,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`);
+
       console.log('Database schema ensured.');
     });
   }

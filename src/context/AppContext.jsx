@@ -25,6 +25,7 @@ export const AppProvider = ({ children }) => {
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [library, setLibrary] = useState([]);
   const [toasts, setToasts] = useState([]);
+  const [history, setHistory] = useState([]);
 
   useEffect(() => { document.body.className = `theme-${theme}`; localStorage.setItem('theme', theme); }, [theme]);
   
@@ -78,10 +79,23 @@ export const AppProvider = ({ children }) => {
       if (feeRes.ok) setFees(await feeRes.json());
       if (assnRes.ok) setAssignments(await assnRes.json());
       if (libRes.ok) setLibrary(await libRes.json());
+      if (userRole === 'admin') {
+        const histRes = await fetch(`${API_URL}/admin/history`, { headers: authHeaders });
+        if (histRes.ok) setHistory(await histRes.json());
+      }
       
     } catch (err) {
       console.error('Error fetching data:', err);
       addToast('Error syncing data with server', 'danger');
+    }
+  };
+
+  const fetchHistory = async () => {
+    try {
+      const res = await fetch(`${API_URL}/admin/history`, { headers: authHeaders });
+      if (res.ok) setHistory(await res.json());
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -328,9 +342,9 @@ export const AppProvider = ({ children }) => {
       loginAdmin, registerAdmin, loginStudent, loginTeacher, logout, requestRegistration, approveRequest, rejectRequest,
       theme, setTheme, 
       students, teachers, fees, messages, toasts, classes,
-      assignments, submissions, calendarEvents, library,
+      assignments, submissions, calendarEvents, library, history,
       sendMessage, recordFeePayment, addToast, addStudent, authHeaders, API_URL,
-      addAssignment, addLibraryMaterial
+      addAssignment, addLibraryMaterial, fetchHistory
     }}>
       {children}
     </AppContext.Provider>

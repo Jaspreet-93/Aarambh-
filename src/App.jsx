@@ -15,6 +15,7 @@ import CalendarView from './pages/CalendarView';
 import Library from './pages/Library';
 import Requests from './pages/Requests';
 import Settings from './pages/Settings';
+import History from './pages/History';
 import { AppProvider, AppContext } from './context/AppContext';
 import ToastContainer from './components/Toast';
 import Chatbot from './components/Chatbot';
@@ -76,6 +77,7 @@ const AppLayout = () => {
         <Route path="/students" element={<AdminRoute><Students /></AdminRoute>} />
         <Route path="/classes" element={<AdminRoute><Classes /></AdminRoute>} />
         <Route path="/classes/:id" element={<AdminRoute><ClassDetails /></AdminRoute>} />
+        <Route path="/history" element={<AdminRoute><History /></AdminRoute>} />
         
         {/* Student Routes */}
         <Route path="/student-dashboard" element={<StudentRoute><StudentDashboard /></StudentRoute>} />

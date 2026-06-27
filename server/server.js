@@ -12,6 +12,14 @@ const qrcode = require('qrcode');
 
 require('dotenv').config();
 
+// --- AUDIT LOG HELPER ---
+const logAction = (action, details) => {
+  db.run(`INSERT INTO audit_logs (action, details) VALUES (?, ?)`, [action, details], (err) => {
+    if (err) console.error('[Audit Log Error]', err.message);
+  });
+};
+// ------------------------
+
 const app = express();
 const PORT = 5000;
 const JWT_SECRET = process.env.SECRET_KEY || 'aarambh_super_secret_key_123';
@@ -257,6 +265,8 @@ app.post('/api/admin/requests/:id/approve', authenticateToken, (req, res) => {
           // Mark request as approved (or delete it)
           db.run(`DELETE FROM registration_requests WHERE id = ?`, [reqId]);
           
+          logAction('REQUEST_APPROVED', `Admin approved registration for ${request.name || request.username} (${request.role})`);
+          
           res.json({ success: true, admission_number: admNum });
       });
     }
@@ -268,6 +278,7 @@ app.delete('/api/admin/requests/:id/reject', authenticateToken, (req, res) => {
   const reqId = parseInt(req.params.id);
   db.run(`DELETE FROM registration_requests WHERE id = ?`, [reqId], (err) => {
     if (err) return res.status(500).json({ error: err.message });
+    logAction('REQUEST_REJECTED', `Admin rejected registration request ID ${reqId}`);
     res.json({ success: true });
   });
 });
@@ -311,6 +322,9 @@ app.post('/api/students', authenticateToken, async (req, res) => {
       if (err) return res.status(500).json({ error: err.message });
       // Create initial fee record for student
       db.run(`INSERT INTO fees (student_id, total, paid, status, due_date) VALUES (?, 5000, 0, 'Pending', '2024-01-01')`, [this.lastID]);
+      
+      logAction('STUDENT_ADDED', `Admin added new student: ${name} to class ${className}`);
+      
       res.json({ id: this.lastID, name, class: className, parentPhone });
   });
 });
@@ -341,7 +355,8 @@ app.get('/api/fees', authenticateToken, (req, res) => {
     if (err) return res.status(500).json({ error: err.message });
     // mapping db snake_case to frontend camelCase
     const mapped = rows.map(r => ({
-      id: r.id, studentId: r.student_id, total: r.total, paid: r.paid, status: r.status, dueDate: r.due_date
+      id: r.id, studentId: r.student_id, total: r.total, paid: r.paid, status: r.status, dueDate: r.due_date,
+      paymentMode: r.payment_mode, paymentDate: r.payment_date
     }));
     res.json(mapped);
   });
@@ -350,7 +365,7 @@ app.get('/api/fees', authenticateToken, (req, res) => {
 app.put('/api/fees/:id/pay', authenticateToken, (req, res) => {
   if (req.user.role !== 'admin') return res.sendStatus(403);
   const studentId = parseInt(req.params.id);
-  const { amount } = req.body;
+  const { amount, paymentMode, paymentDate } = req.body;
   
   db.get(`SELECT * FROM fees WHERE student_id = ?`, [studentId], (err, fee) => {
     if (err || !fee) return res.status(404).json({ error: 'Fee record not found' });
@@ -358,10 +373,24 @@ app.put('/api/fees/:id/pay', authenticateToken, (req, res) => {
     const newPaid = fee.paid + amount;
     const newStatus = newPaid >= fee.total ? 'Paid' : 'Pending';
     
-    db.run(`UPDATE fees SET paid = ?, status = ? WHERE student_id = ?`, [newPaid, newStatus, studentId], (err) => {
+    db.run(`UPDATE fees SET paid = ?, status = ?, payment_mode = ?, payment_date = ? WHERE student_id = ?`, 
+      [newPaid, newStatus, paymentMode || 'Cash', paymentDate || new Date().toLocaleDateString(), studentId], 
+      (err) => {
       if (err) return res.status(500).json({ error: err.message });
-      res.json({ success: true, paid: newPaid, status: newStatus });
+      
+      logAction('FEE_PAID', `Recorded fee payment of Rs. ${amount} for student ID ${studentId}. Mode: ${paymentMode || 'Cash'}, Status: ${newStatus}`);
+      
+      res.json({ success: true, paid: newPaid, status: newStatus, paymentMode, paymentDate });
     });
+  });
+});
+
+// --- AUDIT HISTORY ROUTE ---
+app.get('/api/admin/history', authenticateToken, (req, res) => {
+  if (req.user.role !== 'admin') return res.sendStatus(403);
+  db.all(`SELECT * FROM audit_logs ORDER BY timestamp DESC`, [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
   });
 });
 
