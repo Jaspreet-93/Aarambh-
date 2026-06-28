@@ -5,10 +5,12 @@ import Header from '../components/Header';
 import StatCard from '../components/StatCard';
 import RecentAttendance from '../components/RecentAttendance';
 import { AppContext } from '../context/AppContext';
+import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const AdminDashboard = () => {
   const { fees, authHeaders, API_URL } = useContext(AppContext);
+  const navigate = useNavigate();
   const [analytics, setAnalytics] = useState({
     totalStudents: 0,
     activeClasses: 0,
@@ -67,7 +69,7 @@ const AdminDashboard = () => {
           <div className="prof-card" style={{ flex: '1 1 400px' }}>
              <div className="flex-between" style={{ marginBottom: '1.5rem' }}>
                <h2 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0 }}>Pending Requests</h2>
-               <button onClick={() => window.location.href='/requests'} className="prof-btn prof-btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>View All</button>
+               <button onClick={() => navigate('/requests')} className="prof-btn prof-btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>View All</button>
              </div>
              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                {pendingRequests.slice(0, 3).map(req => (
@@ -76,7 +78,7 @@ const AdminDashboard = () => {
                      <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{req.name}</div>
                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Role: {req.role} | Class: {req.className}</div>
                    </div>
-                   <button onClick={() => window.location.href='/requests'} className="prof-btn" style={{ padding: '0.4rem 1rem' }}>Review</button>
+                   <button onClick={() => navigate('/requests')} className="prof-btn" style={{ padding: '0.4rem 1rem' }}>Review</button>
                  </div>
                ))}
                {pendingRequests.length === 0 && (
@@ -89,15 +91,15 @@ const AdminDashboard = () => {
             <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1.5rem', marginTop: 0 }}>Quick Actions</h2>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
-              <button onClick={() => window.location.href='/attendance'} className="prof-btn prof-btn-outline" style={{ justifyContent: 'space-between' }}>
+              <button onClick={() => navigate('/attendance')} className="prof-btn prof-btn-outline" style={{ justifyContent: 'space-between' }}>
                 <span>Mark Attendance</span>
                 <ArrowRight size={16} />
               </button>
-              <button onClick={() => window.location.href='/students'} className="prof-btn prof-btn-outline" style={{ justifyContent: 'space-between' }}>
+              <button onClick={() => navigate('/students')} className="prof-btn prof-btn-outline" style={{ justifyContent: 'space-between' }}>
                 <span>Add New Student</span>
                 <Plus size={16} />
               </button>
-              <button onClick={() => window.location.href='/requests'} className="prof-btn prof-btn-outline" style={{ justifyContent: 'space-between', position: 'relative' }}>
+              <button onClick={() => navigate('/requests')} className="prof-btn prof-btn-outline" style={{ justifyContent: 'space-between', position: 'relative' }}>
                 <span>Registration Requests</span>
                 {pendingRequests.length > 0 && (
                   <span style={{ position: 'absolute', right: '40px', background: 'var(--danger)', color: 'white', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem' }}>
