@@ -279,9 +279,9 @@ app.post('/api/admin/requests/:id/approve', authenticateToken, (req, res) => {
     // Insert into users
     let finalAdmissionNumber = request.admission_number;
     if (!finalAdmissionNumber) {
-      db.get(`SELECT COUNT(*) as count FROM users WHERE role = ?`, [request.role], (err, row) => {
-        let count = row ? row.count + 1 : 1;
-        finalAdmissionNumber = request.role === 'student' ? `AES${count}` : request.role === 'teacher' ? `AET${count}` : `ADM${count}`;
+      db.get(`SELECT MAX(CAST(SUBSTR(admission_number, 4) AS INTEGER)) as max_num FROM users WHERE role = ?`, [request.role], (err, row) => {
+        const nextNum = (row && row.max_num ? row.max_num : 0) + 1;
+        finalAdmissionNumber = request.role === 'student' ? `AES${nextNum}` : request.role === 'teacher' ? `AET${nextNum}` : `ADM${nextNum}`;
         insertUser(finalAdmissionNumber);
       });
     } else {
@@ -377,16 +377,23 @@ app.post('/api/students', authenticateToken, async (req, res) => {
   const hashedPassword = await bcrypt.hash('pass', 10); // default password
   const formattedName = name ? name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : name;
 
-  db.run(`INSERT INTO users (name, role, className, parentPhone, password) VALUES (?, ?, ?, ?, ?)`, 
-    [formattedName, 'student', className, parentPhone, hashedPassword], 
-    function(err) {
-      if (err) return res.status(500).json({ error: err.message });
-      // Create initial fee record for student
-      db.run(`INSERT INTO fees (student_id, total, paid, status, due_date) VALUES (?, 5000, 0, 'Pending', '2024-01-01')`, [this.lastID]);
-      
-      logAction('STUDENT_ADDED', `Admin added new student: ${formattedName} to class ${className}`);
-      
-      res.json({ id: this.lastID, name: formattedName, class: className, parentPhone });
+  // Generate unique AES admission number
+  db.get(`SELECT MAX(CAST(SUBSTR(admission_number, 4) AS INTEGER)) as max_num FROM users WHERE role = 'student'`, [], (err, row) => {
+    const nextNum = (row && row.max_num ? row.max_num : 0) + 1;
+    const admissionNumber = `AES${nextNum}`;
+    
+    db.run(`INSERT INTO users (name, role, className, parentPhone, password, admission_number) VALUES (?, ?, ?, ?, ?, ?)`, 
+      [formattedName, 'student', className, parentPhone, hashedPassword, admissionNumber], 
+      function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        const newUserId = this.lastID;
+        // Create initial fee record for student
+        db.run(`INSERT INTO fees (student_id, total, paid, status, due_date) VALUES (?, 5000, 0, 'Pending', '2024-01-01')`, [newUserId]);
+        
+        logAction('STUDENT_ADDED', `Admin added new student: ${formattedName} to class ${className}`);
+        
+        res.json({ id: newUserId, name: formattedName, class: className, parentPhone, admission_number: admissionNumber });
+    });
   });
 });
 
