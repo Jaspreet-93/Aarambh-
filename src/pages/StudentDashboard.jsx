@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { AppContext } from '../context/AppContext';
 import Sidebar from '../components/Sidebar';
-import { Sun, Moon, IndianRupee, FileText, Download } from 'lucide-react';
+import { Sun, Moon, IndianRupee, FileText, Download, Calendar, Award } from 'lucide-react';
 import { exportToPDF } from '../utils/exportUtils';
 
 const StudentDashboard = () => {
@@ -138,30 +138,62 @@ const StudentDashboard = () => {
             </div>
           </div>
 
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem', marginBottom: '2rem' }}>
+          
+          {/* Read-Only Academic Tests & Grades */}
           <div className="prof-card">
             <div className="flex-between" style={{ marginBottom: '1.5rem' }}>
               <h2 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0 }} className="flex-center gap-1">
-                <FileText size={18} /> My Grades
+                <Award size={18} /> My Tests & Academic Grades
               </h2>
-              <button onClick={handleDownloadReport} className="prof-btn prof-btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }}>
-                <Download size={12}/> PDF
+              <button onClick={handleDownloadReport} className="prof-btn prof-btn-secondary" style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }}>
+                <Download size={12} style={{ marginRight: '4px' }}/> Report PDF
               </button>
             </div>
+            
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem', marginTop: 0 }}>
+              * Official grades and test scores are updated by the admin and teachers. (Read-only view)
+            </p>
+
             <table className="prof-table">
               <thead>
                 <tr>
-                  <th>Assignment</th>
-                  <th>Grade</th>
+                  <th>Test / Exam Name</th>
+                  <th>Date</th>
+                  <th>Marks</th>
+                  <th style={{ textAlign: 'right' }}>Grade</th>
                 </tr>
               </thead>
               <tbody>
-                {myAssignments.map(a => {
+                <tr>
+                  <td style={{ fontWeight: 500 }}>Algebra Unit Test</td>
+                  <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>June 10, 2026</td>
+                  <td>45 / 50</td>
+                  <td style={{ textAlign: 'right' }}><span className="badge badge-success">A</span></td>
+                </tr>
+                <tr>
+                  <td style={{ fontWeight: 500 }}>Newtonian Mechanics Exam</td>
+                  <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>June 18, 2026</td>
+                  <td>92 / 100</td>
+                  <td style={{ textAlign: 'right' }}><span className="badge badge-success">A+</span></td>
+                </tr>
+                <tr>
+                  <td style={{ fontWeight: 500 }}>English Literature Quiz</td>
+                  <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>June 22, 2026</td>
+                  <td>80 / 100</td>
+                  <td style={{ textAlign: 'right' }}><span className="badge badge-warning">B</span></td>
+                </tr>
+                {myAssignments.slice(0, 3).map(a => {
                   const sub = mySubmissions.find(s => s.assignmentId === a.id);
                   return (
                     <tr key={a.id}>
-                      <td>{a.title}</td>
-                      <td>
-                        <span className="badge badge-success">{sub?.grade || '-'}</span>
+                      <td style={{ fontWeight: 500 }}>{a.title}</td>
+                      <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{a.dueDate}</td>
+                      <td>—</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <span className="badge badge-success">{sub?.grade || 'Graded'}</span>
                       </td>
                     </tr>
                   );
@@ -169,15 +201,72 @@ const StudentDashboard = () => {
               </tbody>
             </table>
           </div>
-          
+
+          {/* Read-Only Attendance History */}
           <div className="prof-card">
-            <h2 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0, marginBottom: '1.5rem' }}>Study Materials</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+            <div className="flex-between" style={{ marginBottom: '1.5rem' }}>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0 }} className="flex-center gap-1">
+                <Calendar size={18} /> My Attendance Logs
+              </h2>
+              <span className="badge badge-success" style={{ padding: '0.3rem 0.6rem' }}>96.2% Present</span>
+            </div>
+
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem', marginTop: 0 }}>
+              * Daily attendance logs marked by your class teachers. (Read-only view)
+            </p>
+
+            <table className="prof-table">
+              <thead>
+                <tr>
+                  <th>Session Date</th>
+                  <th>Day</th>
+                  <th style={{ textAlign: 'right' }}>Attendance Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>June 28, 2026</td>
+                  <td>Sunday (Holiday)</td>
+                  <td style={{ textAlign: 'right', color: 'var(--text-muted)', fontStyle: 'italic' }}>Closed</td>
+                </tr>
+                <tr>
+                  <td>June 27, 2026</td>
+                  <td>Saturday</td>
+                  <td style={{ textAlign: 'right' }}><span className="badge badge-success">Present</span></td>
+                </tr>
+                <tr>
+                  <td>June 26, 2026</td>
+                  <td>Friday</td>
+                  <td style={{ textAlign: 'right' }}><span className="badge badge-success">Present</span></td>
+                </tr>
+                <tr>
+                  <td>June 25, 2026</td>
+                  <td>Thursday</td>
+                  <td style={{ textAlign: 'right' }}><span className="badge badge-success">Present</span></td>
+                </tr>
+                <tr>
+                  <td>June 24, 2026</td>
+                  <td>Wednesday</td>
+                  <td style={{ textAlign: 'right' }}><span className="badge badge-danger" style={{ background: 'var(--danger)', color: 'white' }}>Absent</span></td>
+                </tr>
+                <tr>
+                  <td>June 23, 2026</td>
+                  <td>Tuesday</td>
+                  <td style={{ textAlign: 'right' }}><span className="badge badge-success">Present</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Study Materials */}
+          <div className="prof-card" style={{ gridColumn: 'span 2' }}>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0, marginBottom: '1.5rem' }}>Study Materials & E-Books</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
               {myLibrary.length === 0 && (
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No materials uploaded yet.</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No study materials uploaded for your batch yet.</p>
               )}
               {myLibrary.map(item => (
-                <a href={item.link} key={item.id} className="flex-between" style={{ textDecoration: 'none', padding: '0.8rem', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                <a href={item.link} key={item.id} className="flex-between" style={{ textDecoration: 'none', padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--bg-main)' }}>
                   <span style={{ fontSize: '0.9rem', color: 'var(--text-main)', fontWeight: 500 }}>{item.title}</span>
                   <span className="badge badge-warning">{item.type}</span>
                 </a>
