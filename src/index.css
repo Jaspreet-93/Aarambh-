@@ -3,45 +3,45 @@
 /* Professional Theme CSS */
 
 :root, body.theme-light {
-  --bg-main: #e0e5ec;
-  --bg-card: #e0e5ec;
-  --bg-sidebar: #e0e5ec;
-  --text-main: #2d3748;
-  --text-muted: #718096;
+  --bg-main: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  --bg-card: rgba(255, 255, 255, 0.4);
+  --bg-sidebar: rgba(255, 255, 255, 0.6);
+  --text-main: #1f2937;
+  --text-muted: #4b5563;
   
-  --primary: #e0e5ec;
+  --primary: rgba(255, 255, 255, 0.6);
   --primary-text: #2563eb;
-  --primary-hover: #e0e5ec;
-  --secondary: #e0e5ec;
-  --secondary-hover: #e0e5ec;
+  --primary-hover: rgba(255, 255, 255, 0.8);
+  --secondary: rgba(255, 255, 255, 0.3);
+  --secondary-hover: rgba(255, 255, 255, 0.5);
   
-  --border-color: transparent;
+  --border-color: rgba(255, 255, 255, 0.5);
   
-  --shadow-neu: 9px 9px 16px rgba(163,177,198,0.6), -9px -9px 16px rgba(255,255,255,0.7);
-  --shadow-neu-inset: inset 6px 6px 10px 0 rgba(163,177,198,0.7), inset -6px -6px 10px 0 rgba(255,255,255,0.8);
+  --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+  --shadow-glass-hover: 0 12px 40px 0 rgba(31, 38, 135, 0.15);
   
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
+  --success: #059669;
+  --warning: #d97706;
+  --danger: #dc2626;
 }
 
 body.theme-dark {
-  --bg-main: #1e293b;
-  --bg-card: #1e293b;
-  --bg-sidebar: #1e293b;
+  --bg-main: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+  --bg-card: rgba(15, 23, 42, 0.4);
+  --bg-sidebar: rgba(15, 23, 42, 0.6);
   --text-main: #f8fafc;
-  --text-muted: #94a3b8;
+  --text-muted: #cbd5e1;
   
-  --primary: #1e293b;
-  --primary-text: #3b82f6;
-  --primary-hover: #1e293b;
-  --secondary: #1e293b;
-  --secondary-hover: #1e293b;
+  --primary: rgba(59, 130, 246, 0.2);
+  --primary-text: #60a5fa;
+  --primary-hover: rgba(59, 130, 246, 0.3);
+  --secondary: rgba(255, 255, 255, 0.05);
+  --secondary-hover: rgba(255, 255, 255, 0.1);
   
-  --border-color: transparent;
+  --border-color: rgba(255, 255, 255, 0.1);
   
-  --shadow-neu: 7px 7px 15px #151d29, -7px -7px 15px #27354d;
-  --shadow-neu-inset: inset 5px 5px 10px #151d29, inset -5px -5px 10px #27354d;
+  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+  --shadow-glass-hover: 0 12px 40px 0 rgba(0, 0, 0, 0.6);
   
   --success: #10b981;
   --warning: #f59e0b;
@@ -56,19 +56,22 @@ body.theme-dark {
 
 body {
   font-family: 'Inter', sans-serif;
-  background-color: var(--bg-main);
+  background: var(--bg-main);
+  background-attachment: fixed;
   color: var(--text-main);
   min-height: 100vh;
   overflow-x: hidden;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: color 0.3s ease;
   -webkit-font-smoothing: antialiased;
 }
 
 /* Base UI Elements */
 .prof-card {
   background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-neu);
+  box-shadow: var(--shadow-glass);
   border-radius: 16px;
   padding: 1.5rem;
   transition: box-shadow 0.3s ease, transform 0.3s ease;
@@ -76,19 +79,22 @@ body {
 
 .prof-card:hover {
   transform: translateY(-2px);
+  box-shadow: var(--shadow-glass-hover);
 }
 
 .prof-btn {
   background: var(--primary);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: var(--primary-text);
-  border: none;
+  border: 1px solid var(--border-color);
   padding: 0.6rem 1.2rem;
   border-radius: 8px;
   cursor: pointer;
   font-family: 'Inter', sans-serif;
   font-size: 0.9rem;
   font-weight: 600;
-  box-shadow: var(--shadow-neu);
+  box-shadow: var(--shadow-glass);
   transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
@@ -97,12 +103,13 @@ body {
 }
 
 .prof-btn:hover {
-  color: var(--primary-text);
-  box-shadow: var(--shadow-neu-inset);
+  background: var(--primary-hover);
+  box-shadow: var(--shadow-glass-hover);
+  transform: translateY(-1px);
 }
 
 .prof-btn:active {
-  box-shadow: var(--shadow-neu-inset);
+  transform: translateY(1px);
 }
 
 .prof-btn-outline {
@@ -112,7 +119,7 @@ body {
 }
 
 .prof-btn-outline:hover {
-  background: var(--secondary);
+  background: var(--primary);
 }
 
 .prof-btn-secondary {
@@ -127,7 +134,9 @@ body {
 
 .prof-input {
   width: 100%;
-  background: var(--bg-main);
+  background: var(--bg-card);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--border-color);
   border-radius: 6px;
   padding: 0.6rem 1rem;
@@ -138,7 +147,7 @@ body {
 }
 
 .prof-input:focus {
-  border-color: var(--primary);
+  border-color: var(--primary-text);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
 }
 
