@@ -171,11 +171,11 @@ export const AppProvider = ({ children }) => {
     setTimeout(() => { setToasts(prev => prev.filter(t => t.id !== id)); }, 4000);
   };
 
-  const addStudent = async (name, className, parentPhone) => {
+  const addStudent = async (name, className, parentPhone, fatherName) => {
     try {
       const res = await fetch(`${API_URL}/students`, {
         method: 'POST', headers: authHeaders,
-        body: JSON.stringify({ name, className, parentPhone })
+        body: JSON.stringify({ name, className, parentPhone, fatherName })
       });
       if (res.ok) {
         const data = await res.json();

@@ -15,6 +15,7 @@ const Login = () => {
   const [className, setClassName] = useState(''); // Specific to Student registration
   const [admissionNumber, setAdmissionNumber] = useState(''); // Optional, auto-generated if blank
   const [fees, setFees] = useState(''); // Initial fee amount
+  const [fatherName, setFatherName] = useState(''); // Student's Father Name
 
   const { loginAdmin, registerAdmin, loginTeacher, loginStudent, requestRegistration, classes, addToast } = useContext(AppContext);
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ const Login = () => {
     setClassName('');
     setAdmissionNumber('');
     setFees('');
+    setFatherName('');
   };
 
   const handleSubmit = async (e) => {
@@ -72,7 +74,8 @@ const Login = () => {
             phone: phone, // Pass for both student and teacher
             className: activeTab === 'student' ? className : null,
             admissionNumber: admissionNumber || null,
-            fees: activeTab === 'student' && fees ? parseInt(fees) : 0
+            fees: activeTab === 'student' && fees ? parseInt(fees) : 0,
+            fatherName: activeTab === 'student' ? fatherName : null
           };
           
           const success = await requestRegistration(data);
@@ -169,6 +172,21 @@ const Login = () => {
               style={{ paddingLeft: '2.5rem' }}
             />
           </div>
+
+          {activeTab === 'student' && isRegisterMode && (
+            <div style={{ position: 'relative' }}>
+              <User size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input 
+                type="text" 
+                placeholder="Father's Name"
+                value={fatherName}
+                onChange={(e) => setFatherName(e.target.value)}
+                required
+                className="prof-input"
+                style={{ paddingLeft: '2.5rem' }}
+              />
+            </div>
+          )}
 
           {(activeTab === 'student' || (activeTab === 'teacher' && isRegisterMode)) && (
             <div style={{ position: 'relative' }}>

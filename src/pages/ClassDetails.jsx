@@ -122,12 +122,13 @@ const ClassDetails = () => {
               )}
             </div>
             <table className="prof-table">
-              <thead><tr><th>ID</th><th>Name</th><th>Parent Phone</th></tr></thead>
+              <thead><tr><th>ID</th><th>Name</th><th>Father's Name</th><th>Parent Phone</th><th>Actions</th></tr></thead>
               <tbody>
                 {classStudents.map(student => (
                   <tr key={student.id}>
                     <td><span className="badge badge-secondary">{student.admission_number || `#${student.id}`}</span></td>
                     <td style={{ fontWeight: 500 }}>{student.name}</td>
+                    <td style={{ color: 'var(--text-muted)' }}>{student.fatherName || '—'}</td>
                     <td style={{ color: 'var(--text-muted)' }}>{student.parentPhone}</td>
                     <td style={{ textAlign: 'right' }}>
                       <button className="prof-btn prof-btn-secondary" style={{ color: 'var(--danger)', borderColor: 'var(--danger)', background: 'transparent', padding: '0.3rem 0.6rem', fontSize: '0.8rem' }} onClick={() => { if(window.confirm('Remove this student?')) removeStudent(student.id); }}>
@@ -136,7 +137,7 @@ const ClassDetails = () => {
                     </td>
                   </tr>
                 ))}
-                {classStudents.length === 0 && <tr><td colSpan="4" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No students enrolled.</td></tr>}
+                {classStudents.length === 0 && <tr><td colSpan="5" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No students enrolled.</td></tr>}
               </tbody>
             </table>
           </div>

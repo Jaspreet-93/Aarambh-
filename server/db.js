@@ -20,11 +20,15 @@ const db = new sqlite3.Database(dbPath, (err) => {
         parentPhone TEXT,
         className TEXT,
         admission_number TEXT,
-        email TEXT
+        email TEXT,
+        fatherName TEXT
       )`);
 
-      // Migration: Add email column if not exists
+      // Migration: Add email & fatherName columns if not exists
       db.run(`ALTER TABLE users ADD COLUMN email TEXT`, (err) => {
+        // Ignore error if column already exists
+      });
+      db.run(`ALTER TABLE users ADD COLUMN fatherName TEXT`, (err) => {
         // Ignore error if column already exists
       });
 
@@ -92,8 +96,14 @@ const db = new sqlite3.Database(dbPath, (err) => {
         className TEXT,
         admission_number TEXT,
         fees INTEGER,
-        status TEXT DEFAULT 'pending'
+        status TEXT DEFAULT 'pending',
+        fatherName TEXT
       )`);
+
+      // Migration: Add fatherName to registration_requests if not exists
+      db.run(`ALTER TABLE registration_requests ADD COLUMN fatherName TEXT`, (err) => {
+        // Ignore error if column already exists
+      });
 
       // Audit Logs Table (History)
       db.run(`CREATE TABLE IF NOT EXISTS audit_logs (

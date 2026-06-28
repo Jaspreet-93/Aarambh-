@@ -19,26 +19,28 @@ const Students = () => {
   const [newName, setNewName] = useState('');
   const [newClass, setNewClass] = useState('');
   const [newPhone, setNewPhone] = useState('');
+  const [newFatherName, setNewFatherName] = useState('');
 
   const handleExportCSV = () => {
-    const headers = ['ID', 'Name', 'Class', 'Parent Phone'];
-    const rows = students.map(s => [s.id, s.name, s.class, s.parentPhone]);
+    const headers = ['ID', 'Name', 'Class', 'Parent Phone', 'Father Name'];
+    const rows = students.map(s => [s.id, s.name, s.class, s.parentPhone, s.fatherName]);
     exportToCSV('students_list', rows, headers);
   };
 
   const handleAddStudent = () => {
-    if (!newName || !newClass || !newPhone) {
+    if (!newName || !newClass || !newPhone || !newFatherName) {
       addToast('Please fill in all fields.', 'warning');
       return;
     }
     
-    addStudent(newName, newClass, newPhone);
+    addStudent(newName, newClass, newPhone, newFatherName);
     setShowModal(false);
     
     // Reset form
     setNewName('');
     setNewClass('');
     setNewPhone('');
+    setNewFatherName('');
   };
 
   return (
@@ -95,6 +97,14 @@ const Students = () => {
                 style={{ marginTop: '1rem' }} 
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
+              />
+              <input 
+                type="text" 
+                placeholder="Father's Name" 
+                className="prof-input" 
+                style={{ marginTop: '1rem' }} 
+                value={newFatherName}
+                onChange={(e) => setNewFatherName(e.target.value)}
               />
               <select 
                 className="prof-input" 

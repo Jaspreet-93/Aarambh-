@@ -233,13 +233,14 @@ app.post('/api/auth/register-admin', async (req, res) => {
 
 // Request Registration (Teacher & Student)
 app.post('/api/auth/request-register', async (req, res) => {
-  const { role, name, username, password, phone, className, admissionNumber, fees } = req.body;
+  const { role, name, username, password, phone, className, admissionNumber, fees, fatherName } = req.body;
   
   const hashedPassword = await bcrypt.hash(password, 10);
   const formattedName = name ? name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : name;
+  const formattedFatherName = fatherName ? fatherName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : null;
 
-  db.run(`INSERT INTO registration_requests (role, name, username, password, parentPhone, className, admission_number, fees, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')`, 
-    [role, formattedName, username, hashedPassword, phone, className, admissionNumber || null, fees || 0], 
+  db.run(`INSERT INTO registration_requests (role, name, username, password, parentPhone, className, admission_number, fees, status, fatherName) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`, 
+    [role, formattedName, username, hashedPassword, phone, className, admissionNumber || null, fees || 0, formattedFatherName], 
     function(err) {
       if (err) return res.status(500).json({ error: err.message });
       
@@ -289,8 +290,8 @@ app.post('/api/admin/requests/:id/approve', authenticateToken, (req, res) => {
     }
 
     function insertUser(admNum) {
-      db.run(`INSERT INTO users (name, username, password, role, parentPhone, className, admission_number) VALUES (?, ?, ?, ?, ?, ?, ?)`, 
-        [request.name || request.username, request.username, request.password, request.role, request.parentPhone, request.className, admNum], 
+      db.run(`INSERT INTO users (name, username, password, role, parentPhone, className, admission_number, fatherName) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, 
+        [request.name || request.username, request.username, request.password, request.role, request.parentPhone, request.className, admNum, request.fatherName], 
         function(err) {
           if (err) return res.status(500).json({ error: err.message });
           const newUserId = this.lastID;
@@ -364,7 +365,7 @@ app.delete('/api/classes/:id', authenticateToken, (req, res) => {
 
 // Get all students
 app.get('/api/students', authenticateToken, (req, res) => {
-  db.all(`SELECT id, name, parentPhone, className as class, password FROM users WHERE role = 'student'`, [], (err, rows) => {
+  db.all(`SELECT id, name, parentPhone, className as class, password, fatherName, admission_number FROM users WHERE role = 'student'`, [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });
@@ -373,17 +374,18 @@ app.get('/api/students', authenticateToken, (req, res) => {
 // Add a student (Admin only)
 app.post('/api/students', authenticateToken, async (req, res) => {
   if (req.user.role !== 'admin') return res.sendStatus(403);
-  const { name, className, parentPhone } = req.body;
+  const { name, className, parentPhone, fatherName } = req.body;
   const hashedPassword = await bcrypt.hash('pass', 10); // default password
   const formattedName = name ? name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : name;
+  const formattedFatherName = fatherName ? fatherName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : null;
 
   // Generate unique AES admission number
   db.get(`SELECT MAX(CAST(SUBSTR(admission_number, 4) AS INTEGER)) as max_num FROM users WHERE role = 'student'`, [], (err, row) => {
     const nextNum = (row && row.max_num ? row.max_num : 0) + 1;
     const admissionNumber = `AES${nextNum}`;
     
-    db.run(`INSERT INTO users (name, role, className, parentPhone, password, admission_number) VALUES (?, ?, ?, ?, ?, ?)`, 
-      [formattedName, 'student', className, parentPhone, hashedPassword, admissionNumber], 
+    db.run(`INSERT INTO users (name, role, className, parentPhone, password, admission_number, fatherName) VALUES (?, ?, ?, ?, ?, ?, ?)`, 
+      [formattedName, 'student', className, parentPhone, hashedPassword, admissionNumber, formattedFatherName], 
       function(err) {
         if (err) return res.status(500).json({ error: err.message });
         const newUserId = this.lastID;
@@ -392,7 +394,7 @@ app.post('/api/students', authenticateToken, async (req, res) => {
         
         logAction('STUDENT_ADDED', `Admin added new student: ${formattedName} to class ${className}`);
         
-        res.json({ id: newUserId, name: formattedName, class: className, parentPhone, admission_number: admissionNumber });
+        res.json({ id: newUserId, name: formattedName, class: className, parentPhone, admission_number: admissionNumber, fatherName: formattedFatherName });
     });
   });
 });
