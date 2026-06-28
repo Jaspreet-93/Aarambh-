@@ -2,78 +2,59 @@ import React, { useContext, useState } from 'react';
 import { AppContext } from '../context/AppContext';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
-import { Search } from 'lucide-react';
 
 const Messages = () => {
   const { messages, students, classes, sendMessage } = useContext(AppContext);
   
-  const [recipientInput, setRecipientInput] = useState('');
-  const [selectedTarget, setSelectedTarget] = useState(null); // { type: 'student'|'batch'|'manual', name: '...', target: '...' }
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedBatch, setSelectedBatch] = useState('');
+  const [selectedStudentId, setSelectedStudentId] = useState('');
+  const [phoneInput, setPhoneInput] = useState('');
   const [content, setContent] = useState('');
   const [channel, setChannel] = useState('SMS');
 
-  // Filter suggestions based on input
-  const cleanInput = recipientInput.trim().toLowerCase();
-  const studentSuggestions = cleanInput === '' ? [] : students.filter(s => s.name.toLowerCase().includes(cleanInput));
-  const batchSuggestions = cleanInput === '' ? [] : classes.filter(c => c.name.toLowerCase().includes(cleanInput));
-  const hasSuggestions = studentSuggestions.length > 0 || batchSuggestions.length > 0;
+  // Filter students based on selected batch
+  const displayStudents = selectedBatch 
+    ? students.filter(s => s.class === selectedBatch)
+    : students;
 
-  const handleSelectStudent = (student) => {
-    setSelectedTarget({
-      type: 'student',
-      name: student.name,
-      target: student.parentPhone
-    });
-    setRecipientInput(`${student.name} (${student.parentPhone})`);
-    setShowSuggestions(false);
+  const handleBatchChange = (e) => {
+    const batchName = e.target.value;
+    setSelectedBatch(batchName);
+    setSelectedStudentId('');
+    setPhoneInput(''); // Reset phone when batch changes
   };
 
-  const handleSelectBatch = (cls) => {
-    setSelectedTarget({
-      type: 'batch',
-      name: cls.name,
-      target: cls.name
-    });
-    setRecipientInput(`Batch: ${cls.name}`);
-    setShowSuggestions(false);
-  };
-
-  const handleInputChange = (e) => {
-    const val = e.target.value;
-    setRecipientInput(val);
-    setSelectedTarget(null); // Reset selected target if they edit the input
-    setShowSuggestions(true);
+  const handleStudentChange = (e) => {
+    const studentId = e.target.value;
+    setSelectedStudentId(studentId);
+    
+    if (studentId) {
+      const student = students.find(s => s.id === parseInt(studentId));
+      if (student && student.parentPhone) {
+        setPhoneInput(student.parentPhone);
+      } else {
+        setPhoneInput('');
+      }
+    } else {
+      setPhoneInput('');
+    }
   };
 
   const handleManualSend = (e) => {
     e.preventDefault();
-    if (!recipientInput.trim() || !content) return;
+    if (!content) return;
 
-    let target = selectedTarget;
-    
-    // If they typed a raw number without clicking suggestions
-    if (!target) {
-      const cleanPhone = recipientInput.replace(/\D/g, '');
-      if (cleanPhone.length >= 10) {
-        target = {
-          type: 'manual',
-          name: 'Manual Number',
-          target: cleanPhone
-        };
-      } else {
-        alert('Please select a student/batch from suggestions or type a valid 10-digit phone number.');
+    // Determine targets
+    if (selectedStudentId) {
+      // Individual student selected: send to whatever is in the phone input box (allows manual override)
+      if (!phoneInput.trim()) {
+        alert('Please enter a phone number.');
         return;
       }
-    }
-
-    // Dispatch message
-    if (target.type === 'student' || target.type === 'manual') {
-      if (target.target) {
-        sendMessage(target.target, channel, content);
-      }
-    } else if (target.type === 'batch') {
-      const batchStudents = students.filter(s => s.class === target.target);
+      sendMessage(phoneInput, channel, content);
+    } else if (selectedBatch && !selectedStudentId) {
+      // Batch selected but no specific student: send to all students in that batch
+      const batchStudents = students.filter(s => s.class === selectedBatch);
       if (batchStudents.length === 0) {
         alert('No students found in this batch.');
         return;
@@ -83,11 +64,19 @@ const Messages = () => {
           sendMessage(student.parentPhone, channel, content);
         }
       });
+    } else {
+      // No batch, no student: send to whatever manual phone number they typed in
+      if (!phoneInput.trim()) {
+        alert('Please enter a phone number.');
+        return;
+      }
+      sendMessage(phoneInput, channel, content);
     }
 
     // Reset fields
-    setRecipientInput('');
-    setSelectedTarget(null);
+    setSelectedBatch('');
+    setSelectedStudentId('');
+    setPhoneInput('');
     setContent('');
   };
 
@@ -101,79 +90,55 @@ const Messages = () => {
           
           <div className="prof-card">
             <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1.5rem', marginTop: 0 }}>Compose Message</h2>
-            <form onSubmit={handleManualSend} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <form onSubmit={handleManualSend} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
               
-              <div style={{ position: 'relative' }}>
-                <label className="prof-label" style={{ marginBottom: '0.5rem', display: 'block' }}>Recipient</label>
-                <div style={{ position: 'relative' }}>
-                  <input 
-                    type="text" 
-                    placeholder="Type student name, batch name, or phone number..." 
-                    value={recipientInput}
-                    onChange={handleInputChange}
-                    onFocus={() => setShowSuggestions(true)}
-                    required
-                    className="prof-input"
-                    style={{ paddingRight: '2.5rem' }}
-                  />
-                  <Search size={16} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                </div>
-
-                {/* Suggestions Dropdown */}
-                {showSuggestions && recipientInput && hasSuggestions && (
-                  <div className="prof-card" style={{
-                    position: 'absolute',
-                    top: '105%',
-                    left: 0,
-                    right: 0,
-                    maxHeight: '250px',
-                    overflowY: 'auto',
-                    zIndex: 100,
-                    background: 'var(--bg-card)',
-                    backdropFilter: 'blur(20px)',
-                    border: '1px solid var(--border-color)',
-                    boxShadow: 'var(--shadow-glass)',
-                    borderRadius: '12px',
-                    padding: '0.5rem'
-                  }}>
-                    {batchSuggestions.length > 0 && (
-                      <div>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '0.4rem 0.6rem' }}>Batches</div>
-                        {batchSuggestions.map(cls => (
-                          <div 
-                            key={cls.id} 
-                            className="search-item" 
-                            style={{ padding: '0.5rem 0.6rem', cursor: 'pointer', borderRadius: '6px', fontSize: '0.85rem' }}
-                            onClick={() => handleSelectBatch(cls)}
-                          >
-                            <strong>Batch: {cls.name}</strong>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {studentSuggestions.length > 0 && (
-                      <div style={{ marginTop: '0.5rem' }}>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '0.4rem 0.6rem' }}>Students</div>
-                        {studentSuggestions.map(s => (
-                          <div 
-                            key={s.id} 
-                            className="search-item" 
-                            style={{ padding: '0.5rem 0.6rem', cursor: 'pointer', borderRadius: '6px', fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between' }}
-                            onClick={() => handleSelectStudent(s)}
-                          >
-                            <strong>{s.name}</strong>
-                            <span style={{ color: 'var(--text-muted)' }}>{s.parentPhone}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+              <div>
+                <label className="prof-label" style={{ marginBottom: '0.4rem', display: 'block' }}>1. Select Batch (Optional)</label>
+                <select 
+                  value={selectedBatch} 
+                  onChange={handleBatchChange}
+                  className="prof-input"
+                >
+                  <option value="">-- All Batches (or type manual number) --</option>
+                  {classes.map(c => (
+                    <option key={c.id} value={c.name}>{c.name} ({c.grade})</option>
+                  ))}
+                </select>
+                <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.2rem', display: 'block' }}>
+                  Leave student blank if you want to message the entire batch.
+                </small>
               </div>
 
               <div>
-                <label className="prof-label">Messaging Service</label>
+                <label className="prof-label" style={{ marginBottom: '0.4rem', display: 'block' }}>2. Select Student (Optional)</label>
+                <select 
+                  value={selectedStudentId} 
+                  onChange={handleStudentChange}
+                  className="prof-input"
+                >
+                  <option value="">-- Select Student (or send to whole batch) --</option>
+                  {displayStudents.map(s => (
+                    <option key={s.id} value={s.id}>{s.name} ({s.class || 'No Class'})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="prof-label" style={{ marginBottom: '0.4rem', display: 'block' }}>3. Phone Number</label>
+                <input 
+                  type="text" 
+                  placeholder="Parent phone number (fetched automatically, or type here)" 
+                  value={phoneInput}
+                  onChange={e => setPhoneInput(e.target.value)}
+                  className="prof-input"
+                />
+                <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.2rem', display: 'block' }}>
+                  You can edit or type a manual phone number here directly.
+                </small>
+              </div>
+
+              <div>
+                <label className="prof-label" style={{ marginBottom: '0.4rem', display: 'block' }}>Messaging Service</label>
                 <select 
                   value={channel} 
                   onChange={e => setChannel(e.target.value)}
@@ -186,7 +151,7 @@ const Messages = () => {
               </div>
 
               <div>
-                <label className="prof-label">Message Content</label>
+                <label className="prof-label" style={{ marginBottom: '0.4rem', display: 'block' }}>Message Content</label>
                 <textarea 
                   placeholder="Type your message here..." 
                   value={content}
@@ -202,7 +167,7 @@ const Messages = () => {
             </form>
           </div>
 
-          <div className="prof-card" style={{ display: 'flex', flexDirection: 'column', maxHeight: '600px' }}>
+          <div className="prof-card" style={{ display: 'flex', flexDirection: 'column', maxHeight: '650px' }}>
             <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1.5rem', marginTop: 0 }}>Message Logs</h2>
             
             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', paddingRight: '0.5rem' }}>
