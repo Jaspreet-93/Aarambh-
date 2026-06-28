@@ -271,47 +271,6 @@ const StudentDashboard = () => {
               </div>
             </div>
 
-            {/* Attendance Logs Card (Read-Only) */}
-            <div className="prof-card">
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0, marginBottom: '1.2rem' }} className="flex-center gap-1">
-                <Calendar size={18} style={{ color: 'var(--primary)' }} /> Attendance Log
-              </h3>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0 0 1rem 0' }}>
-                * Attendance is logged daily and is read-only.
-              </p>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                <div className="flex-between" style={{ padding: '0.6rem 0.8rem', background: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                  <div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>June 27, 2026</div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Saturday Session</span>
-                  </div>
-                  <span className="badge badge-success">Present</span>
-                </div>
-                <div className="flex-between" style={{ padding: '0.6rem 0.8rem', background: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                  <div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>June 26, 2026</div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Friday Session</span>
-                  </div>
-                  <span className="badge badge-success">Present</span>
-                </div>
-                <div className="flex-between" style={{ padding: '0.6rem 0.8rem', background: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                  <div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>June 25, 2026</div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Thursday Session</span>
-                  </div>
-                  <span className="badge badge-success">Present</span>
-                </div>
-                <div className="flex-between" style={{ padding: '0.6rem 0.8rem', background: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border-color)', borderLeft: '4px solid var(--danger)' }}>
-                  <div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>June 24, 2026</div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Wednesday Session</span>
-                  </div>
-                  <span className="badge badge-danger" style={{ background: 'var(--danger)', color: 'white' }}>Absent</span>
-                </div>
-              </div>
-            </div>
-
           </div>
 
         </div>
