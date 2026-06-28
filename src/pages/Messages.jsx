@@ -2,49 +2,92 @@ import React, { useContext, useState } from 'react';
 import { AppContext } from '../context/AppContext';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
+import { Search } from 'lucide-react';
 
 const Messages = () => {
   const { messages, students, classes, sendMessage } = useContext(AppContext);
-  const [sendType, setSendType] = useState('student'); // 'student', 'batch', 'manual'
-  const [selectedStudent, setSelectedStudent] = useState('');
-  const [selectedBatch, setSelectedBatch] = useState('');
-  const [manualPhone, setManualPhone] = useState('');
+  
+  const [recipientInput, setRecipientInput] = useState('');
+  const [selectedTarget, setSelectedTarget] = useState(null); // { type: 'student'|'batch'|'manual', name: '...', target: '...' }
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [content, setContent] = useState('');
   const [channel, setChannel] = useState('SMS');
 
+  // Filter suggestions based on input
+  const cleanInput = recipientInput.trim().toLowerCase();
+  const studentSuggestions = cleanInput === '' ? [] : students.filter(s => s.name.toLowerCase().includes(cleanInput));
+  const batchSuggestions = cleanInput === '' ? [] : classes.filter(c => c.name.toLowerCase().includes(cleanInput));
+  const hasSuggestions = studentSuggestions.length > 0 || batchSuggestions.length > 0;
+
+  const handleSelectStudent = (student) => {
+    setSelectedTarget({
+      type: 'student',
+      name: student.name,
+      target: student.parentPhone
+    });
+    setRecipientInput(`${student.name} (${student.parentPhone})`);
+    setShowSuggestions(false);
+  };
+
+  const handleSelectBatch = (cls) => {
+    setSelectedTarget({
+      type: 'batch',
+      name: cls.name,
+      target: cls.name
+    });
+    setRecipientInput(`Batch: ${cls.name}`);
+    setShowSuggestions(false);
+  };
+
+  const handleInputChange = (e) => {
+    const val = e.target.value;
+    setRecipientInput(val);
+    setSelectedTarget(null); // Reset selected target if they edit the input
+    setShowSuggestions(true);
+  };
+
   const handleManualSend = (e) => {
     e.preventDefault();
-    if (!content) return;
+    if (!recipientInput.trim() || !content) return;
 
-    if (sendType === 'student') {
-      const student = students.find(s => s.id === parseInt(selectedStudent));
-      if (student && student.parentPhone) {
-        sendMessage(student.parentPhone, channel, content);
-      }
-    } else if (sendType === 'batch') {
-      const batchClass = classes.find(c => c.id === parseInt(selectedBatch));
-      if (batchClass) {
-        const batchStudents = students.filter(s => s.class === batchClass.name);
-        if (batchStudents.length === 0) {
-          alert('No students found in this batch.');
-          return;
-        }
-        batchStudents.forEach(student => {
-          if (student.parentPhone) {
-            sendMessage(student.parentPhone, channel, content);
-          }
-        });
-      }
-    } else {
-      if (manualPhone) {
-        sendMessage(manualPhone, channel, content);
+    let target = selectedTarget;
+    
+    // If they typed a raw number without clicking suggestions
+    if (!target) {
+      const cleanPhone = recipientInput.replace(/\D/g, '');
+      if (cleanPhone.length >= 10) {
+        target = {
+          type: 'manual',
+          name: 'Manual Number',
+          target: cleanPhone
+        };
+      } else {
+        alert('Please select a student/batch from suggestions or type a valid 10-digit phone number.');
+        return;
       }
     }
 
+    // Dispatch message
+    if (target.type === 'student' || target.type === 'manual') {
+      if (target.target) {
+        sendMessage(target.target, channel, content);
+      }
+    } else if (target.type === 'batch') {
+      const batchStudents = students.filter(s => s.class === target.target);
+      if (batchStudents.length === 0) {
+        alert('No students found in this batch.');
+        return;
+      }
+      batchStudents.forEach(student => {
+        if (student.parentPhone) {
+          sendMessage(student.parentPhone, channel, content);
+        }
+      });
+    }
+
     // Reset fields
-    setSelectedStudent('');
-    setSelectedBatch('');
-    setManualPhone('');
+    setRecipientInput('');
+    setSelectedTarget(null);
     setContent('');
   };
 
@@ -60,71 +103,74 @@ const Messages = () => {
             <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1.5rem', marginTop: 0 }}>Compose Message</h2>
             <form onSubmit={handleManualSend} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               
-              <div>
-                <label className="prof-label" style={{ marginBottom: '0.5rem', display: 'block' }}>Send To</label>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
-                    <input type="radio" checked={sendType === 'student'} onChange={() => setSendType('student')} />
-                    Student
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
-                    <input type="radio" checked={sendType === 'batch'} onChange={() => setSendType('batch')} />
-                    Batch
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
-                    <input type="radio" checked={sendType === 'manual'} onChange={() => setSendType('manual')} />
-                    Manual Number
-                  </label>
-                </div>
-              </div>
-
-              {sendType === 'student' && (
-                <div>
-                  <label className="prof-label">Select Student</label>
-                  <select 
-                    value={selectedStudent} 
-                    onChange={e => setSelectedStudent(e.target.value)}
-                    className="prof-input"
-                    required
-                  >
-                    <option value="">-- Select Student --</option>
-                    {students.map(s => (
-                      <option key={s.id} value={s.id}>{s.name} ({s.class || 'No Class'}) - {s.parentPhone}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {sendType === 'batch' && (
-                <div>
-                  <label className="prof-label">Select Batch</label>
-                  <select 
-                    value={selectedBatch} 
-                    onChange={e => setSelectedBatch(e.target.value)}
-                    className="prof-input"
-                    required
-                  >
-                    <option value="">-- Select Batch --</option>
-                    {classes.map(c => (
-                      <option key={c.id} value={c.id}>{c.name} ({c.grade})</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {sendType === 'manual' && (
-                <div>
-                  <label className="prof-label">Phone Number</label>
+              <div style={{ position: 'relative' }}>
+                <label className="prof-label" style={{ marginBottom: '0.5rem', display: 'block' }}>Recipient</label>
+                <div style={{ position: 'relative' }}>
                   <input 
                     type="text" 
-                    placeholder="Recipient Phone Number (e.g. 9876543210)" 
-                    value={manualPhone}
-                    onChange={(e) => setManualPhone(e.target.value)}
+                    placeholder="Type student name, batch name, or phone number..." 
+                    value={recipientInput}
+                    onChange={handleInputChange}
+                    onFocus={() => setShowSuggestions(true)}
                     required
                     className="prof-input"
+                    style={{ paddingRight: '2.5rem' }}
                   />
+                  <Search size={16} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 </div>
-              )}
+
+                {/* Suggestions Dropdown */}
+                {showSuggestions && recipientInput && hasSuggestions && (
+                  <div className="prof-card" style={{
+                    position: 'absolute',
+                    top: '105%',
+                    left: 0,
+                    right: 0,
+                    maxHeight: '250px',
+                    overflowY: 'auto',
+                    zIndex: 100,
+                    background: 'var(--bg-card)',
+                    backdropFilter: 'blur(20px)',
+                    border: '1px solid var(--border-color)',
+                    boxShadow: 'var(--shadow-glass)',
+                    borderRadius: '12px',
+                    padding: '0.5rem'
+                  }}>
+                    {batchSuggestions.length > 0 && (
+                      <div>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '0.4rem 0.6rem' }}>Batches</div>
+                        {batchSuggestions.map(cls => (
+                          <div 
+                            key={cls.id} 
+                            className="search-item" 
+                            style={{ padding: '0.5rem 0.6rem', cursor: 'pointer', borderRadius: '6px', fontSize: '0.85rem' }}
+                            onClick={() => handleSelectBatch(cls)}
+                          >
+                            <strong>Batch: {cls.name}</strong>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {studentSuggestions.length > 0 && (
+                      <div style={{ marginTop: '0.5rem' }}>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '0.4rem 0.6rem' }}>Students</div>
+                        {studentSuggestions.map(s => (
+                          <div 
+                            key={s.id} 
+                            className="search-item" 
+                            style={{ padding: '0.5rem 0.6rem', cursor: 'pointer', borderRadius: '6px', fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between' }}
+                            onClick={() => handleSelectStudent(s)}
+                          >
+                            <strong>{s.name}</strong>
+                            <span style={{ color: 'var(--text-muted)' }}>{s.parentPhone}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <div>
                 <label className="prof-label">Messaging Service</label>
