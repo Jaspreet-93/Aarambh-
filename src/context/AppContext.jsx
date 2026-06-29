@@ -35,16 +35,36 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // Enforce jaspreet admin user presence in localStorage users list
+  // Enforce jaspreet admin and teacher user presence and updates in localStorage users list
   useEffect(() => {
     const users = JSON.parse(localStorage.getItem('aarambh_users') || '[]');
+    let modified = false;
+
+    // 1. Enforce jaspreet admin
     const hasJaspreet = users.find(u => (u.username || '').trim().toLowerCase() === 'jaspreet');
     if (!hasJaspreet) {
-      const jaspreetAdmin = { id: 4, name: 'Jaspreet Singh', username: 'jaspreet', password: '1526', role: 'admin', email: 'jaspreet@aarambh.edu' };
-      localStorage.setItem('aarambh_users', JSON.stringify([...users, jaspreetAdmin]));
+      users.push({ id: 4, name: 'Jaspreet Singh', username: 'jaspreet', password: '1526', role: 'admin', email: 'jaspreet@aarambh.edu' });
+      modified = true;
     } else if (hasJaspreet.password !== '1526') {
-      const updatedUsers = users.map(u => (u.username || '').trim().toLowerCase() === 'jaspreet' ? { ...u, password: '1526' } : u);
-      localStorage.setItem('aarambh_users', JSON.stringify(updatedUsers));
+      hasJaspreet.password = '1526';
+      modified = true;
+    }
+
+    // 2. Enforce teacher user
+    const hasTeacher = users.find(u => (u.username || '').trim().toLowerCase() === 'teacher');
+    if (!hasTeacher) {
+      users.push({ id: 2, name: 'S. Jaspreet Singh', username: 'teacher', password: '1526', role: 'teacher', email: 'teacher@aarambh.edu', assignedClasses: ['10th Math', '10th Science'] });
+      modified = true;
+    } else {
+      if (hasTeacher.password !== '1526' || !hasTeacher.assignedClasses) {
+        hasTeacher.password = '1526';
+        hasTeacher.assignedClasses = ['10th Math', '10th Science'];
+        modified = true;
+      }
+    }
+
+    if (modified) {
+      localStorage.setItem('aarambh_users', JSON.stringify(users));
     }
   }, []);
 
