@@ -92,14 +92,14 @@ export const AppProvider = ({ children }) => {
         { id: 1, name: 'System Admin', username: 'admin', password: 'pass', role: 'admin', email: 'admin@aarambh.edu' },
         { id: 4, name: 'Jaspreet Singh', username: 'jaspreet', password: '1526', role: 'admin', email: 'jaspreet@aarambh.edu' },
         { id: 2, name: 'S. Jaspreet Singh', username: 'teacher', password: 'pass', role: 'teacher', email: 'teacher@aarambh.edu' },
-        { id: 3, name: 'Jaspreet Kaur', username: 'student', password: 'pass', role: 'student', fatherName: 'Jaspreet Singh', class: '10th Math', admission_number: 'AES1001', parentPhone: '9876543210' }
+        { id: 3, name: 'Jaspreet Kaur', username: 'student', password: 'pass', role: 'student', fatherName: 'Jaspreet Singh', class: '10th Math', admission_number: 'AES1', parentPhone: '9876543210' }
       ];
       const defaultClasses = [
         { id: 1, name: '10th Math', grade: 'Class A', time: '10:00 AM' },
         { id: 2, name: '10th Science', grade: 'Class B', time: '11:30 AM' }
       ];
       const defaultStudents = [
-        { id: 3, name: 'Jaspreet Kaur', class: '10th Math', parentPhone: '9876543210', fatherName: 'Jaspreet Singh', username: 'student', admission_number: 'AES1001' }
+        { id: 3, name: 'Jaspreet Kaur', class: '10th Math', parentPhone: '9876543210', fatherName: 'Jaspreet Singh', username: 'student', admission_number: 'AES1' }
       ];
       const defaultTeachers = [
         { id: 2, name: 'S. Jaspreet Singh', email: 'teacher@aarambh.edu', username: 'teacher' }
@@ -129,7 +129,7 @@ export const AppProvider = ({ children }) => {
         { id: 1, title: 'Special Physics Session', content: 'Sunday special lecture rescheduled to 9 AM.', target_class: 'All', date: new Date().toLocaleDateString() }
       ];
       const defaultRequests = [
-        { id: 101, role: 'student', name: 'Simran Singh', username: 'simran', password: 'pass', parentPhone: '9999988888', className: '10th Math', admission_number: 'AES1002', fatherName: 'Gurbaksh Singh', status: 'pending' }
+        { id: 101, role: 'student', name: 'Simran Singh', username: 'simran', password: 'pass', parentPhone: '9999988888', className: '10th Math', admission_number: 'AES2', fatherName: 'Gurbaksh Singh', status: 'pending' }
       ];
 
       localStorage.setItem('aarambh_users', JSON.stringify(defaultUsers));
@@ -148,6 +148,31 @@ export const AppProvider = ({ children }) => {
         { id: 2, title: 'Internet charges', amount: 800, date: '06/12/2026' }
       ]));
       localStorage.setItem('aarambh_db_initialized', 'true');
+    }
+
+    // Self-healing migration for existing databases to convert old formats (AES1001) to sequential (AES1)
+    const currentStudents = JSON.parse(localStorage.getItem('aarambh_students') || '[]');
+    let modified = false;
+    currentStudents.forEach((s, idx) => {
+      const targetNum = `AES${idx + 1}`;
+      if (s.admission_number !== targetNum) {
+        s.admission_number = targetNum;
+        modified = true;
+      }
+    });
+    if (modified) {
+      localStorage.setItem('aarambh_students', JSON.stringify(currentStudents));
+      
+      const currentUsers = JSON.parse(localStorage.getItem('aarambh_users') || '[]');
+      currentUsers.forEach(u => {
+        if (u.role === 'student') {
+          const matchingStudent = currentStudents.find(s => s.id === u.id);
+          if (matchingStudent) {
+            u.admission_number = matchingStudent.admission_number;
+          }
+        }
+      });
+      localStorage.setItem('aarambh_users', JSON.stringify(currentUsers));
     }
 
     // Load state from localStorage
@@ -243,7 +268,7 @@ export const AppProvider = ({ children }) => {
 
     // Fail-safe credential bypass (allows ANY password for student)
     if (cleanUsername === 'student') {
-      const defaultStudent = { id: 3, name: 'Jaspreet Kaur', username: 'student', role: 'student', fatherName: 'Jaspreet Singh', class: '10th Math', admission_number: 'AES1001', parentPhone: '9876543210' };
+      const defaultStudent = { id: 3, name: 'Jaspreet Kaur', username: 'student', role: 'student', fatherName: 'Jaspreet Singh', class: '10th Math', admission_number: 'AES1', parentPhone: '9876543210' };
       setAuthToken('student-mock-token');
       setUserRole('student');
       setLoggedInUser(defaultStudent);
@@ -309,6 +334,22 @@ export const AppProvider = ({ children }) => {
       return false;
     }
 
+    // Generate sequential admission number for student registration
+    let sequentialAdmissionNumber = null;
+    if (reqData.role === 'student') {
+      const currentStudentsList = JSON.parse(localStorage.getItem('aarambh_students') || '[]');
+      let maxNum = 0;
+      currentStudentsList.forEach(s => {
+        const match = (s.admission_number || '').match(/AES(\d+)/i);
+        if (match) {
+          const num = parseInt(match[1]);
+          if (num > maxNum) maxNum = num;
+        }
+      });
+      const nextNum = maxNum + 1;
+      sequentialAdmissionNumber = `AES${nextNum}`;
+    }
+
     const newUser = {
       id: Date.now(),
       name: reqData.name,
@@ -318,7 +359,7 @@ export const AppProvider = ({ children }) => {
       email: reqData.role === 'teacher' ? `${cleanUsername}@aarambh.edu` : null,
       class: reqData.className,
       fatherName: reqData.fatherName,
-      admission_number: reqData.admissionNumber || `AES${Date.now().toString().slice(-4)}`,
+      admission_number: reqData.admissionNumber || sequentialAdmissionNumber || `AES${Date.now().toString().slice(-4)}`,
       parentPhone: reqData.phone
     };
 
@@ -380,6 +421,19 @@ export const AppProvider = ({ children }) => {
     if (!req) return false;
 
     // 1. Add to students list
+    // Generate sequential admission number for approved student
+    const currentStudentsList = JSON.parse(localStorage.getItem('aarambh_students') || '[]');
+    let maxNum = 0;
+    currentStudentsList.forEach(s => {
+      const match = (s.admission_number || '').match(/AES(\d+)/i);
+      if (match) {
+        const num = parseInt(match[1]);
+        if (num > maxNum) maxNum = num;
+      }
+    });
+    const nextNum = maxNum + 1;
+    const sequentialAdmissionNumber = `AES${nextNum}`;
+
     const newStudent = {
       id: req.id,
       name: req.name,
@@ -387,7 +441,7 @@ export const AppProvider = ({ children }) => {
       parentPhone: req.parentPhone,
       fatherName: req.fatherName,
       username: req.username,
-      admission_number: req.admission_number || `AES${Date.now().toString().slice(-4)}`
+      admission_number: req.admission_number || sequentialAdmissionNumber
     };
     const updatedStudents = [...students, newStudent];
     setStudents(updatedStudents);
@@ -508,6 +562,20 @@ export const AppProvider = ({ children }) => {
     }
 
     const id = Date.now();
+    
+    // Generate sequential admission number
+    const currentStudentsList = JSON.parse(localStorage.getItem('aarambh_students') || '[]');
+    let maxNum = 0;
+    currentStudentsList.forEach(s => {
+      const match = (s.admission_number || '').match(/AES(\d+)/i);
+      if (match) {
+        const num = parseInt(match[1]);
+        if (num > maxNum) maxNum = num;
+      }
+    });
+    const nextNum = maxNum + 1;
+    const sequentialAdmissionNumber = `AES${nextNum}`;
+
     const newStudent = {
       id,
       name: studentData.name,
@@ -515,7 +583,7 @@ export const AppProvider = ({ children }) => {
       parentPhone: studentData.parentPhone,
       fatherName: studentData.fatherName,
       username: studentData.username || `stu_${id.toString().slice(-4)}`,
-      admission_number: studentData.admission_number || `AES${id.toString().slice(-4)}`
+      admission_number: studentData.admission_number || sequentialAdmissionNumber
     };
 
     const updatedStudents = [...students, newStudent];
