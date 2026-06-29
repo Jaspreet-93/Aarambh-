@@ -214,7 +214,7 @@ export const AppProvider = ({ children }) => {
     return false;
   };
 
-  const registerAdmin = async (name, username, password) => {
+  const registerAdmin = async (username, password) => {
     const cleanUsername = (username || '').trim().toLowerCase();
     const cleanPassword = (password || '').trim();
     const users = JSON.parse(localStorage.getItem('aarambh_users') || '[]');
@@ -223,10 +223,15 @@ export const AppProvider = ({ children }) => {
       addToast('Username already exists', 'danger');
       return false;
     }
-    const newUser = { id: Date.now(), name, username: cleanUsername, password: cleanPassword, role: 'admin' };
+    const newUser = { id: Date.now(), name: username, username: cleanUsername, password: cleanPassword, role: 'admin' };
     const updatedUsers = [...users, newUser];
     localStorage.setItem('aarambh_users', JSON.stringify(updatedUsers));
-    addToast('Admin registered successfully. You can log in.');
+
+    // Auto login on successful registration
+    setAuthToken('admin-mock-token');
+    setUserRole('admin');
+    setLoggedInUser(newUser);
+    addToast('Admin registered and logged in successfully!');
     return true;
   };
 
