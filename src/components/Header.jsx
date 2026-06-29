@@ -43,12 +43,12 @@ const Header = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
   };
 
-  const filteredStudentsRaw = searchVal.trim() === '' ? [] : students.filter(s => s.name.toLowerCase().includes(searchVal.toLowerCase()));
-  const filteredClassesRaw = searchVal.trim() === '' ? [] : classes.filter(c => c.name.toLowerCase().includes(searchVal.toLowerCase()));
+  const filteredStudentsRaw = searchVal.trim() === '' ? [] : students.filter(s => s && (s.name || '').toLowerCase().includes(searchVal.toLowerCase()));
+  const filteredClassesRaw = searchVal.trim() === '' ? [] : classes.filter(c => c && (c.name || '').toLowerCase().includes(searchVal.toLowerCase()));
 
   // Deduplicate by ID to prevent duplicate items from showing in the search list
-  const filteredStudents = Array.from(new Map(filteredStudentsRaw.map(s => [s.id, s])).values());
-  const filteredClasses = Array.from(new Map(filteredClassesRaw.map(c => [c.id, c])).values());
+  const filteredStudents = Array.from(new Map(filteredStudentsRaw.filter(s => s && s.id).map(s => [s.id, s])).values());
+  const filteredClasses = Array.from(new Map(filteredClassesRaw.filter(c => c && c.id).map(c => [c.id, c])).values());
 
   return (
     <header className="flex-between" style={{ marginBottom: '2rem' }}>
