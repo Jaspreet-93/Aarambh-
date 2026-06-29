@@ -32,19 +32,14 @@ const Chatbot = () => {
     const loadingId = Date.now() + 1;
     setMessages(prev => [...prev, { id: loadingId, sender: 'bot', text: '...' }]);
 
-    // Build current user context for personalized answers
+    // Build current user context for personalized answers (omitting fees & financial data)
     let userContext = null;
     if (loggedInUser) {
-      const myFeesList = fees
-        .filter(f => f.studentId === loggedInUser.id)
-        .map(f => ({ month: f.month, status: f.status, total: f.total, paid: f.paid }));
-        
       userContext = {
         name: loggedInUser.name,
         role: loggedInUser.role,
         class: loggedInUser.class,
-        fatherName: loggedInUser.fatherName,
-        fees: myFeesList
+        fatherName: loggedInUser.fatherName
       };
     }
 

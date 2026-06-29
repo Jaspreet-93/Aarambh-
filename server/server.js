@@ -835,20 +835,23 @@ app.post('/api/chat', async (req, res) => {
   const { messages, userContext } = req.body;
   const apiKey = process.env.GEMINI_API_KEY;
 
-  // 1. Offline Mode with student-specific context intelligence
+  const lastUserMessage = messages[messages.length - 1]?.text?.toLowerCase() || '';
+
+  // Prevent ANY financial/fee/profit-loss questions in chatbot
+  const financialKeywords = ['fee', 'pending', 'due', 'pay', 'rupee', 'money', 'profit', 'loss', 'expense', 'cost', 'price', 'salary', 'financial', 'revenue', 'budget'];
+  if (financialKeywords.some(keyword => lastUserMessage.includes(keyword))) {
+    return res.json({
+      success: true,
+      text: "Sorry, I cannot answer questions about financial details, fees, or profit & loss metrics."
+    });
+  }
+
+  // 1. Offline Mode with student-specific context intelligence (non-financial only)
   if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {
-    const lastUserMessage = messages[messages.length - 1]?.text?.toLowerCase() || '';
     let responseText = "I am currently running in Offline FAQ Mode. To unlock my full Artificial Intelligence, please add your Google Gemini API Key in the server settings!";
     
     if (userContext) {
-      if (lastUserMessage.includes('fee') || lastUserMessage.includes('pending') || lastUserMessage.includes('due') || lastUserMessage.includes('pay') || lastUserMessage.includes('rupee') || lastUserMessage.includes('money')) {
-        const pendingMonths = userContext.fees ? userContext.fees.filter(f => f.status !== 'Paid').map(f => f.month) : [];
-        if (pendingMonths.length > 0) {
-          responseText = `Hello ${userContext.name}! Your tuition fees are **Pending** for the following month(s): **${pendingMonths.join(', ')}**.\n\nYou can pay these month-by-month through the 'My Receipts' page or directly from your Student Dashboard.`;
-        } else {
-          responseText = `Great news ${userContext.name}! Your tuition fees for all 12 months (January to December) are fully **Paid**. Thank you so much!`;
-        }
-      } else if (lastUserMessage.includes('batch') || lastUserMessage.includes('class') || lastUserMessage.includes('schedule') || lastUserMessage.includes('subject')) {
+      if (lastUserMessage.includes('batch') || lastUserMessage.includes('class') || lastUserMessage.includes('schedule') || lastUserMessage.includes('subject')) {
         responseText = `Hi ${userContext.name}, you are currently registered in the batch: **${userContext.class}**.\n\nYour class lectures, schedule, and study materials are mapped directly to this batch.`;
       } else if (lastUserMessage.includes('father') || lastUserMessage.includes('parent') || lastUserMessage.includes('dad') || lastUserMessage.includes('family')) {
         responseText = `According to your registration records, your father's name is registered as: **${userContext.fatherName || 'Not Set'}**. If this needs correction, please contact the administrator.`;
@@ -874,14 +877,16 @@ app.post('/api/chat', async (req, res) => {
     }));
 
     // Inject system instructions + active user details
-    let systemPromptText = "You are Aarambh AI, a highly intelligent and friendly assistant for a tuition management system. You help students, parents, teachers, and admins with queries. Be concise, polite, and use formatting like bolding or bullet points where appropriate.";
+    let systemPromptText = `You are Aarambh AI, a highly intelligent and friendly assistant for a tuition management system. You help students, parents, teachers, and admins with queries. Be concise, polite, and use formatting like bolding or bullet points where appropriate.
+
+CRITICAL PRIVACY RULE: You are strictly forbidden from discussing or answering questions about fees, profit and loss, expenses, tuition pricing, salaries, budgets, or any administrative financial details. If the user asks about these topics, you must politely decline by saying: 'Sorry, I cannot answer questions about financial details, fees, or profit & loss metrics.' Do not make any exceptions under any circumstances.`;
+
     if (userContext) {
-      systemPromptText += `\n\nActive Logged-in User Information:
+      systemPromptText += `\n\nActive Logged-in User Information (strictly non-financial):
 - Student Name: ${userContext.name}
 - Role: ${userContext.role}
 - Batch/Class Enrolled: ${userContext.class}
-- Father's Name: ${userContext.fatherName || 'N/A'}
-- 12-Month Tuition Fees Data: ${JSON.stringify(userContext.fees)}`;
+- Father's Name: ${userContext.fatherName || 'N/A'}`;
     }
 
     contents.unshift({
@@ -890,7 +895,7 @@ app.post('/api/chat', async (req, res) => {
     });
     contents.unshift({
       role: 'model',
-      parts: [{ text: "Understood. I am Aarambh AI, and I am loaded with the current student's personal batch, fees, and father's name context. I will personalize my responses accordingly." }]
+      parts: [{ text: "Understood. I am Aarambh AI. I am loaded with the current student's name, batch, and father's name, and I will strictly avoid any discussions regarding fees, profit & loss, or other administrative financial metrics." }]
     });
 
     const response = await fetch(url, {
