@@ -299,18 +299,78 @@ export const AppProvider = ({ children }) => {
     addToast('Logged out successfully.');
   };
 
-  // Student Registrations Request
-  const requestRegistration = async (studentData) => {
-    const requests = JSON.parse(localStorage.getItem('aarambh_requests') || '[]');
-    const newRequest = {
-      ...studentData,
+  // Student/Teacher Registrations Request (Auto-Approve for seamless local database creation)
+  const requestRegistration = async (reqData) => {
+    const cleanUsername = (reqData.username || reqData.name || '').trim().toLowerCase();
+    const users = JSON.parse(localStorage.getItem('aarambh_users') || '[]');
+
+    if (users.some(u => (u.username || '').trim().toLowerCase() === cleanUsername)) {
+      addToast('Username already exists', 'danger');
+      return false;
+    }
+
+    const newUser = {
       id: Date.now(),
-      status: 'pending'
+      name: reqData.name,
+      username: reqData.username || cleanUsername,
+      password: reqData.password,
+      role: reqData.role,
+      email: reqData.role === 'teacher' ? `${cleanUsername}@aarambh.edu` : null,
+      class: reqData.className,
+      fatherName: reqData.fatherName,
+      admission_number: reqData.admissionNumber || `AES${Date.now().toString().slice(-4)}`,
+      parentPhone: reqData.phone
     };
-    const updatedRequests = [...requests, newRequest];
-    setRegistrationRequests(updatedRequests);
-    localStorage.setItem('aarambh_requests', JSON.stringify(updatedRequests));
-    addToast('Registration request submitted successfully. Waiting for admin approval.');
+
+    const updatedUsers = [...users, newUser];
+    localStorage.setItem('aarambh_users', JSON.stringify(updatedUsers));
+
+    // Expose student-specific properties
+    if (reqData.role === 'student') {
+      const defaultStudents = JSON.parse(localStorage.getItem('aarambh_students') || '[]');
+      localStorage.setItem('aarambh_students', JSON.stringify([...defaultStudents, {
+        id: newUser.id,
+        name: newUser.name,
+        class: newUser.class,
+        parentPhone: newUser.parentPhone,
+        fatherName: newUser.fatherName,
+        username: newUser.username,
+        admission_number: newUser.admission_number
+      }]));
+      setStudents(JSON.parse(localStorage.getItem('aarambh_students')));
+
+      // Auto-generate 12 months fee book
+      const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      const defaultFees = JSON.parse(localStorage.getItem('aarambh_fees') || '[]');
+      const newFees = months.map((month, idx) => ({
+        id: Date.now() + idx,
+        studentId: newUser.id,
+        studentName: newUser.name,
+        class: newUser.class,
+        month,
+        total: reqData.fees || 2000,
+        paid: 0,
+        status: 'Unpaid',
+        paymentDate: null
+      }));
+      localStorage.setItem('aarambh_fees', JSON.stringify([...defaultFees, ...newFees]));
+      setFees(JSON.parse(localStorage.getItem('aarambh_fees')));
+    }
+
+    // Expose teacher-specific properties
+    if (reqData.role === 'teacher') {
+      const defaultTeachers = JSON.parse(localStorage.getItem('aarambh_teachers') || '[]');
+      localStorage.setItem('aarambh_teachers', JSON.stringify([...defaultTeachers, {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        username: newUser.username,
+        assignedClasses: ['10th Math', '10th Science']
+      }]));
+      setTeachers(JSON.parse(localStorage.getItem('aarambh_teachers')));
+    }
+
+    addToast('Account registered successfully! You can log in now.', 'success');
     return true;
   };
 
