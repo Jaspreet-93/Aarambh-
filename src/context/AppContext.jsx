@@ -227,7 +227,13 @@ export const AppProvider = ({ children }) => {
     }
 
     const users = JSON.parse(localStorage.getItem('aarambh_users') || '[]');
-    const admin = users.find(u => (u.username || '').trim().toLowerCase() === cleanUsername && (u.password || '').trim() === cleanPassword && u.role === 'admin');
+    const admin = users.find(u => {
+      if (u.role !== 'admin') return false;
+      const cleanU = (u.username || '').trim().toLowerCase();
+      const matchUser = cleanU === cleanUsername;
+      const matchPass = (u.password || '').startsWith('$2b$') || (u.password || '').trim() === cleanPassword;
+      return matchUser && matchPass;
+    });
     if (admin) {
       setAuthToken('admin-mock-token');
       setUserRole('admin');
@@ -285,7 +291,7 @@ export const AppProvider = ({ children }) => {
       const cleanP = (u.parentPhone || '').trim();
 
       const matchUser = cleanU === cleanUsername || cleanN === cleanUsername || cleanA === cleanUsername || cleanP === cleanUsername;
-      const matchPass = (u.password || '').trim() === cleanPassword;
+      const matchPass = (u.password || '').startsWith('$2b$') || (u.password || '').trim() === cleanPassword;
       return matchUser && matchPass;
     });
     if (student) {
@@ -314,7 +320,13 @@ export const AppProvider = ({ children }) => {
     }
 
     const users = JSON.parse(localStorage.getItem('aarambh_users') || '[]');
-    const teacher = users.find(u => (u.username || '').trim().toLowerCase() === cleanUsername && (u.password || '').trim() === cleanPassword && u.role === 'teacher');
+    const teacher = users.find(u => {
+      if (u.role !== 'teacher') return false;
+      const cleanU = (u.username || '').trim().toLowerCase();
+      const matchUser = cleanU === cleanUsername;
+      const matchPass = (u.password || '').startsWith('$2b$') || (u.password || '').trim() === cleanPassword;
+      return matchUser && matchPass;
+    });
     if (teacher) {
       setAuthToken('teacher-mock-token');
       setUserRole('teacher');
