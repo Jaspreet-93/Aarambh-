@@ -334,6 +334,7 @@ const Login = () => {
           <div style={{ position: 'relative' }}>
             <Lock size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input 
+              id="password-input"
               type="password" 
               placeholder={isRegisterMode ? "Choose a Password" : "Password"} 
               value={password}
@@ -404,18 +405,14 @@ const Login = () => {
                   type="button"
                   className="prof-btn prof-btn-secondary"
                   style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '20px' }}
-                  onClick={async () => {
-                    const usersList = JSON.parse(localStorage.getItem('aarambh_users') || '[]');
-                    const u = usersList.find(user => user.id === s.id && user.role === 'student');
-                    const pass = u ? u.password : 'pass';
-                    setIsLoading(true);
-                    const success = await loginStudent(s.name, s.parentPhone || '9876543210', pass);
-                    if (success) {
-                      navigate('/student-dashboard');
-                    } else {
-                      setIsLoading(false);
-                      setError('Failed to login via quick access.');
-                    }
+                  onClick={() => {
+                    setUsername(s.name);
+                    setPhone(s.parentPhone || '');
+                    setPassword('');
+                    setError('');
+                    setTimeout(() => {
+                      document.getElementById('password-input')?.focus();
+                    }, 50);
                   }}
                 >
                   👤 {s.name} ({s.admission_number || 'No ID'})
