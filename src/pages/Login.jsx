@@ -13,6 +13,8 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [savedStudents, setSavedStudents] = useState([]);
   
+  const [rememberMe, setRememberMe] = useState(true);
+  
   const [className, setClassName] = useState(''); // Specific to Student registration
   const [admissionNumber, setAdmissionNumber] = useState(''); // Optional, auto-generated if blank
   const [fees, setFees] = useState(''); // Initial fee amount
@@ -24,18 +26,31 @@ const Login = () => {
   useEffect(() => {
     const list = JSON.parse(localStorage.getItem('aarambh_students') || '[]');
     setSavedStudents(list);
+    resetForm('admin');
   }, []);
 
-  const resetForm = () => {
+  const resetForm = (tab = activeTab) => {
     setError('');
     setIsRegisterMode(false);
-    setUsername('');
-    setPhone('');
-    setPassword('');
     setClassName('');
     setAdmissionNumber('');
     setFees('');
     setFatherName('');
+
+    const isRemember = localStorage.getItem('aarambh_remember_me') !== 'false';
+    setRememberMe(isRemember);
+    if (isRemember) {
+      const savedUser = localStorage.getItem(`aarambh_saved_${tab}_username`) || '';
+      const savedPass = localStorage.getItem(`aarambh_saved_${tab}_password`) || '';
+      const savedPhone = localStorage.getItem(`aarambh_saved_${tab}_phone`) || '';
+      setUsername(savedUser);
+      setPassword(savedPass);
+      setPhone(savedPhone);
+    } else {
+      setUsername('');
+      setPassword('');
+      setPhone('');
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -65,24 +80,46 @@ const Login = () => {
 
     setIsLoading(true);
 
+    const saveCredentialsIfChecked = (tab) => {
+      localStorage.setItem('aarambh_remember_me', rememberMe ? 'true' : 'false');
+      if (rememberMe) {
+        localStorage.setItem(`aarambh_saved_${tab}_username`, username);
+        localStorage.setItem(`aarambh_saved_${tab}_password`, password);
+        if (tab === 'student') {
+          localStorage.setItem(`aarambh_saved_${tab}_phone`, phone);
+        }
+      } else {
+        localStorage.removeItem(`aarambh_saved_${tab}_username`);
+        localStorage.removeItem(`aarambh_saved_${tab}_password`);
+        localStorage.removeItem(`aarambh_saved_${tab}_phone`);
+      }
+    };
+
     try {
       // targetTab has already been calculated above
 
       if (targetTab === 'admin') {
         if (isRegisterMode) {
           const success = await registerAdmin(username, password);
-          if (success) navigate('/dashboard');
+          if (success) {
+            saveCredentialsIfChecked('admin');
+            navigate('/dashboard');
+          }
           else { setError('Registration failed. Username may exist.'); setIsLoading(false); }
         } else {
           // UI-level hard bypass for admin/jaspreet to guarantee login success
           const cleanUserSanitized = (username || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
           if (cleanUserSanitized === 'admin' || cleanUserSanitized === 'jaspreet') {
+            saveCredentialsIfChecked('admin');
             await loginAdmin(username, password);
             navigate('/dashboard');
             return;
           }
           const success = await loginAdmin(username, password);
-          if (success) navigate('/dashboard');
+          if (success) {
+            saveCredentialsIfChecked('admin');
+            navigate('/dashboard');
+          }
           else { setError('Invalid Admin credentials.'); setIsLoading(false); }
         }
       } else {
@@ -111,27 +148,36 @@ const Login = () => {
             resetForm();
           }
           setIsLoading(false);
+        } else {
           // Login Flow
           const cleanUser = (username || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
           if (targetTab === 'teacher') {
             // UI-level hard bypass for teacher to guarantee login success
             if (cleanUser === 'teacher') {
+              saveCredentialsIfChecked('teacher');
               await loginTeacher(username, password);
               navigate('/teacher-dashboard');
               return;
             }
             const success = await loginTeacher(username, password);
-            if (success) navigate('/teacher-dashboard');
+            if (success) {
+              saveCredentialsIfChecked('teacher');
+              navigate('/teacher-dashboard');
+            }
             else { setError('Invalid Teacher credentials.'); setIsLoading(false); }
           } else {
             // UI-level hard bypass for student to guarantee login success
             if (cleanUser === 'student') {
+              saveCredentialsIfChecked('student');
               await loginStudent(username, phone || '9876543210', password);
               navigate('/student-dashboard');
               return;
             }
             const success = await loginStudent(username, phone || '9876543210', password); 
-            if (success) navigate('/student-dashboard');
+            if (success) {
+              saveCredentialsIfChecked('student');
+              navigate('/student-dashboard');
+            }
             else { setError('Invalid Student credentials.'); setIsLoading(false); }
           }
         }
@@ -161,7 +207,7 @@ const Login = () => {
         {/* Role Toggle */}
         <div style={{ display: 'flex', width: '100%', background: 'var(--secondary)', borderRadius: '8px', padding: '4px', marginBottom: '1.5rem' }}>
           <button 
-            onClick={() => { setActiveTab('admin'); resetForm(); }}
+            onClick={() => { setActiveTab('admin'); resetForm('admin'); }}
             style={{ 
               flex: 1, padding: '0.6rem', border: 'none', borderRadius: '6px', cursor: 'pointer',
               background: activeTab === 'admin' ? 'var(--bg-card)' : 'transparent',
@@ -173,7 +219,7 @@ const Login = () => {
             <ShieldCheck size={16} /> Admin
           </button>
           <button 
-            onClick={() => { setActiveTab('teacher'); resetForm(); }}
+            onClick={() => { setActiveTab('teacher'); resetForm('teacher'); }}
             style={{ 
               flex: 1, padding: '0.6rem', border: 'none', borderRadius: '6px', cursor: 'pointer',
               background: activeTab === 'teacher' ? 'var(--bg-card)' : 'transparent',
@@ -185,7 +231,7 @@ const Login = () => {
             <Briefcase size={16} /> Teacher
           </button>
           <button 
-            onClick={() => { setActiveTab('student'); resetForm(); }}
+            onClick={() => { setActiveTab('student'); resetForm('student'); }}
             style={{ 
               flex: 1, padding: '0.6rem', border: 'none', borderRadius: '6px', cursor: 'pointer',
               background: activeTab === 'student' ? 'var(--bg-card)' : 'transparent',
@@ -297,6 +343,21 @@ const Login = () => {
               style={{ paddingLeft: '2.5rem' }}
             />
           </div>
+
+          {!isRegisterMode && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.2rem', paddingLeft: '2px' }}>
+              <input 
+                type="checkbox" 
+                id="rememberMe" 
+                checked={rememberMe} 
+                onChange={(e) => setRememberMe(e.target.checked)} 
+                style={{ width: 'auto', cursor: 'pointer', transform: 'scale(1.15)' }}
+              />
+              <label htmlFor="rememberMe" style={{ fontSize: '0.85rem', color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', fontWeight: 500 }}>
+                Remember credentials
+              </label>
+            </div>
+          )}
 
           {error && <div style={{ color: 'var(--danger)', fontSize: '0.85rem', textAlign: 'center', fontWeight: 500 }}>{error}</div>}
 
