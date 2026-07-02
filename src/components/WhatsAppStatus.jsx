@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { QrCode, CheckCircle, RefreshCw } from 'lucide-react';
+import { QrCode, CheckCircle, RefreshCw, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-const WhatsAppStatus = () => {
+const WhatsAppStatus = ({ dashboard = false }) => {
+  const navigate = useNavigate();
   const [status, setStatus] = useState('LOADING');
   const [qrCode, setQrCode] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -40,6 +42,7 @@ const WhatsAppStatus = () => {
     setLoading(false);
   };
 
+  // 1. OFFLINE RENDERING MODE
   if (status === 'OFFLINE') {
     return (
       <div className="prof-card" style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', border: '1px dashed var(--border-color)' }}>
@@ -50,12 +53,66 @@ const WhatsAppStatus = () => {
           <span className="badge badge-secondary" style={{ fontSize: '0.75rem' }}>Local Simulation</span>
         </div>
         <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
-          The backend WhatsApp integration server is offline. Dispatches will be simulated locally in this browser.
+          The backend WhatsApp integration server is offline. Dispatches will be simulated locally.
         </p>
+        {dashboard && (
+          <button 
+            onClick={() => navigate('/settings')} 
+            className="prof-btn prof-btn-outline" 
+            style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem', width: '100%', justifyContent: 'center', marginTop: '0.2rem' }}
+          >
+            Configure Settings <ArrowRight size={14} style={{ marginLeft: '4px' }} />
+          </button>
+        )}
       </div>
     );
   }
 
+  // 2. DASHBOARD (COMPACT) RENDERING MODE
+  if (dashboard) {
+    return (
+      <div className="prof-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div className="flex-between">
+          <span style={{ fontWeight: 600, fontSize: '0.95rem' }} className="flex-center gap-1">
+            <QrCode size={16} color="var(--primary)" /> WhatsApp Robot Link
+          </span>
+          <span className={`badge badge-${status === 'CONNECTED' ? 'success' : 'warning'}`} style={{ fontSize: '0.75rem' }}>
+            {status}
+          </span>
+        </div>
+
+        {status === 'CONNECTED' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#10b981', fontWeight: 500 }}>
+              <CheckCircle size={16} /> Robot Linked Successfully
+            </div>
+            <button 
+              onClick={() => navigate('/settings')} 
+              className="prof-btn prof-btn-secondary" 
+              style={{ width: '100%', fontSize: '0.8rem', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+            >
+              Manage Settings <ArrowRight size={12} />
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              Scan QR code in settings to link a device and activate automated WhatsApp dispatches.
+            </div>
+            <button 
+              onClick={() => navigate('/settings')} 
+              className="prof-btn" 
+              style={{ width: '100%', fontSize: '0.8rem', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+            >
+              Link Device & Show QR <ArrowRight size={12} />
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 3. FULL DISPLAY (SETTINGS/MESSAGES) RENDERING MODE
   return (
     <div className="prof-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <div className="flex-between">

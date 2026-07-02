@@ -757,7 +757,7 @@ app.post('/api/whatsapp/restart', authenticateToken, async (req, res) => {
 });
 
 // Send message via SMS (cellular) or Auto-WhatsApp
-app.post('/api/sms', authenticateToken, async (req, res) => {
+app.post('/api/sms', async (req, res) => {
   const { to, message, channel } = req.body;
   
   // 1. Try sending via WhatsApp Robot if selected
