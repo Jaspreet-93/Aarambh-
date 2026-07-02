@@ -902,26 +902,69 @@ export const AppProvider = ({ children }) => {
   };
 
   const addExpense = async (title, amount) => {
-    const newExp = {
+    let newExp = {
       id: Date.now(),
       title,
       amount: parseInt(amount),
       date: new Date().toLocaleDateString()
     };
-    const updatedExpenses = [...expenses, newExp];
+
+    try {
+      const response = await fetch(`${API_URL}/expenses`, {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({ title, amount: parseInt(amount), date: newExp.date })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        newExp = { ...newExp, id: data.id };
+      }
+    } catch (e) {
+      // offline fallback
+    }
+
+    const updatedExpenses = [newExp, ...expenses];
     setExpenses(updatedExpenses);
     localStorage.setItem('aarambh_expenses', JSON.stringify(updatedExpenses));
     logActivity('Add Expense', `Logged expense: ${title} of ₹${amount}`);
-    addToast('Expense recorded successfully!');
+    addToast('Expense recorded successfully!', 'success');
     return newExp;
   };
 
+  const editExpense = async (id, title, amount) => {
+    try {
+      await fetch(`${API_URL}/expenses/${id}`, {
+        method: 'PUT',
+        headers: authHeaders,
+        body: JSON.stringify({ title, amount: parseInt(amount) })
+      });
+    } catch (e) {
+      // offline fallback
+    }
+
+    const updatedExpenses = expenses.map(e => e.id === id ? { ...e, title, amount: parseInt(amount) } : e);
+    setExpenses(updatedExpenses);
+    localStorage.setItem('aarambh_expenses', JSON.stringify(updatedExpenses));
+    logActivity('Edit Expense', `Updated expense ID: ${id} to ${title} (₹${amount})`);
+    addToast('Expense updated successfully!', 'success');
+    return true;
+  };
+
   const removeExpense = async (id) => {
+    try {
+      await fetch(`${API_URL}/expenses/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders
+      });
+    } catch(e) {
+      // offline fallback
+    }
+
     const updatedExpenses = expenses.filter(e => e.id !== id);
     setExpenses(updatedExpenses);
     localStorage.setItem('aarambh_expenses', JSON.stringify(updatedExpenses));
     logActivity('Remove Expense', `Deleted expense ID: ${id}`);
-    addToast('Expense deleted.');
+    addToast('Expense deleted.', 'success');
     return true;
   };
 
@@ -944,7 +987,7 @@ export const AppProvider = ({ children }) => {
       assignments, submissions, calendarEvents, library, history, announcements, registrationRequests,
       sendMessage, recordFeePayment, sendFeeReminders, addToast, addStudent, removeStudent, removeBatch,
       addAssignment, addLibraryMaterial, fetchHistory, updateProfile, addAnnouncement, deleteAnnouncement,
-      addExpense, removeExpense, markAttendance, sendMonthlyAttendanceReport, API_URL, authHeaders
+      addExpense, editExpense, removeExpense, markAttendance, sendMonthlyAttendanceReport, API_URL, authHeaders
     }}>
       {children}
     </AppContext.Provider>

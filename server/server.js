@@ -983,7 +983,21 @@ app.delete('/api/expenses/:id', authenticateToken, (req, res) => {
   const expenseId = parseInt(req.params.id);
   db.run(`DELETE FROM expenses WHERE id = ?`, [expenseId], function(err) {
     if (err) return res.status(500).json({ error: err.message });
+    logAction('EXPENSE_DELETED', `Admin deleted expense ID: ${expenseId}`);
     res.json({ success: true });
+  });
+});
+
+app.put('/api/expenses/:id', authenticateToken, (req, res) => {
+  if (req.user.role !== 'admin') return res.sendStatus(403);
+  const expenseId = parseInt(req.params.id);
+  const { title, amount } = req.body;
+  if (!title || !amount) return res.status(400).json({ error: 'Title and amount are required' });
+
+  db.run(`UPDATE expenses SET title = ?, amount = ? WHERE id = ?`, [title, amount, expenseId], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    logAction('EXPENSE_EDITED', `Admin edited expense ID: ${expenseId} (New title: ${title}, amount: ${amount})`);
+    res.json({ success: true, id: expenseId, title, amount });
   });
 });
 // ---------------------------------------

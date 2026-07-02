@@ -2,13 +2,14 @@ import React, { useState, useEffect, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
-import { TrendingUp, TrendingDown, Plus, Trash2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Plus, Trash2, Edit } from 'lucide-react';
 
 const ProfitLoss = () => {
-  const { userRole, fees, expenses, addExpense, removeExpense } = useContext(AppContext);
+  const { userRole, fees, expenses, addExpense, editExpense, removeExpense } = useContext(AppContext);
   const [showAdd, setShowAdd] = useState(false);
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
+  const [editingExpenseId, setEditingExpenseId] = useState(null);
 
   if (userRole !== 'admin') {
     return (
@@ -28,9 +29,14 @@ const ProfitLoss = () => {
   const netProfit = totalIncome - totalExpenses;
   const isProfitable = netProfit >= 0;
 
-  const handleAddExpense = async (e) => {
+  const handleSaveExpense = async (e) => {
     e.preventDefault();
-    await addExpense(title, amount);
+    if (editingExpenseId) {
+      await editExpense(editingExpenseId, title, amount);
+      setEditingExpenseId(null);
+    } else {
+      await addExpense(title, amount);
+    }
     setShowAdd(false);
     setTitle('');
     setAmount('');
@@ -74,17 +80,28 @@ const ProfitLoss = () => {
 
         {showAdd && (
           <div className="prof-card" style={{ marginBottom: '2rem', background: 'var(--bg-secondary)' }}>
-            <h3>Add New Expense</h3>
-            <form onSubmit={handleAddExpense} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
-              <div style={{ flex: 1 }}>
+            <h3>{editingExpenseId ? 'Edit Expense' : 'Add New Expense'}</h3>
+            <form onSubmit={handleSaveExpense} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: '200px' }}>
                 <label className="prof-label">Description / Title</label>
                 <input required type="text" className="prof-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Teacher Salary, Electricity" />
               </div>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, minWidth: '150px' }}>
                 <label className="prof-label">Amount (Rs.)</label>
                 <input required type="number" className="prof-input" value={amount} onChange={e => setAmount(e.target.value)} placeholder="e.g. 5000" />
               </div>
-              <button type="submit" className="prof-btn">Save Expense</button>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button type="submit" className="prof-btn">{editingExpenseId ? 'Update Expense' : 'Save Expense'}</button>
+                {editingExpenseId && (
+                  <button 
+                    type="button" 
+                    onClick={() => { setEditingExpenseId(null); setTitle(''); setAmount(''); setShowAdd(false); }} 
+                    className="prof-btn prof-btn-outline"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
             </form>
           </div>
         )}
@@ -107,9 +124,27 @@ const ProfitLoss = () => {
                   <td>{exp.title}</td>
                   <td style={{ color: 'var(--danger)', fontWeight: 500 }}>- Rs. {exp.amount}</td>
                   <td>
-                    <button onClick={() => handleDeleteExpense(exp.id)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}>
-                      <Trash2 size={16} />
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
+                      <button 
+                        onClick={() => {
+                          setEditingExpenseId(exp.id);
+                          setTitle(exp.title);
+                          setAmount(exp.amount);
+                          setShowAdd(true);
+                        }} 
+                        style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}
+                        title="Edit Expense"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteExpense(exp.id)} 
+                        style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}
+                        title="Delete Expense"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
