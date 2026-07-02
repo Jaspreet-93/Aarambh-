@@ -92,18 +92,33 @@ try {
 }
 // -----------------------------
 
-// Gmail SMTP configuration
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  host: 'smtp.gmail.com',
-  port: 465,
-  secure: true,
-  auth: {
-    user: 'aarambhinstitute46@gmail.com',
-    pass: 'Neerajsir'
-  }
+// SMTP configuration
+let transporter;
+
+const initializeTransporter = (user, pass) => {
+  transporter = nodemailer.createTransport({
+    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    auth: {
+      user: user || 'aarambhinstitute46@gmail.com',
+      pass: pass || 'Neerajsir'
+    }
+  });
+  console.log(`Gmail SMTP transport system initialized for: ${user || 'aarambhinstitute46@gmail.com'}`);
+};
+
+// Load SMTP settings from DB on boot
+db.serialize(() => {
+  db.get(`SELECT value FROM system_settings WHERE key = 'email_user'`, (err, userRow) => {
+    db.get(`SELECT value FROM system_settings WHERE key = 'email_pass'`, (err, passRow) => {
+      const user = userRow ? userRow.value : 'aarambhinstitute46@gmail.com';
+      const pass = passRow ? passRow.value : 'Neerajsir';
+      initializeTransporter(user, pass);
+    });
+  });
 });
-console.log('Gmail SMTP transport system initialized for aarambhinstitute46@gmail.com.');
 
 // Ensure uploads dir exists
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -669,6 +684,39 @@ app.post('/api/fees/remind-pending', async (req, res) => {
     
     logAction('FEE_REMINDERS_SENT', `Triggered bulk reminders. WhatsApp Sent: ${sentCount}, Email Sent: ${emailSentCount}, Failed: ${failedCount}`);
     res.json({ success: true, sentCount, emailSentCount, failedCount, simulated: waStatus !== 'CONNECTED' });
+  });
+});
+
+// Get SMTP Settings
+app.get('/api/admin/smtp-settings', authenticateToken, (req, res) => {
+  if (req.user.role !== 'admin') return res.sendStatus(403);
+  db.get(`SELECT value FROM system_settings WHERE key = 'email_user'`, (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ email: row ? row.value : 'aarambhinstitute46@gmail.com' });
+  });
+});
+
+// Update SMTP Settings
+app.post('/api/admin/smtp-settings', authenticateToken, (req, res) => {
+  if (req.user.role !== 'admin') return res.sendStatus(403);
+  const { email, password } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email is required' });
+  
+  db.serialize(() => {
+    db.run(`INSERT OR REPLACE INTO system_settings (key, value) VALUES ('email_user', ?)`, [email]);
+    if (password) {
+      db.run(`INSERT OR REPLACE INTO system_settings (key, value) VALUES ('email_pass', ?)`, [password]);
+      initializeTransporter(email, password);
+    } else {
+      // Just reload with old password but new email
+      db.get(`SELECT value FROM system_settings WHERE key = 'email_pass'`, (err, row) => {
+        const oldPass = row ? row.value : 'Neerajsir';
+        initializeTransporter(email, oldPass);
+      });
+    }
+    
+    logAction('SMTP_SETTINGS_UPDATED', `Admin updated SMTP email config to ${email}`);
+    res.json({ success: true, email });
   });
 });
 

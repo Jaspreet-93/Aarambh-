@@ -10,6 +10,10 @@ const Settings = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
 
+  // SMTP Settings States
+  const [smtpEmail, setSmtpEmail] = useState('');
+  const [smtpPassword, setSmtpPassword] = useState('');
+
   // Mock states for new features
   const [emailAlerts, setEmailAlerts] = useState(true);
   const [smsAlerts, setSmsAlerts] = useState(false);
@@ -26,6 +30,48 @@ const Settings = () => {
       fetchHistory();
     }
   }, [loggedInUser]);
+
+  useEffect(() => {
+    const fetchSmtpSettings = async () => {
+      try {
+        const res = await fetch(`${API_URL}/admin/smtp-settings`, {
+          headers: authHeaders
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setSmtpEmail(data.email || 'aarambhinstitute46@gmail.com');
+        } else {
+          setSmtpEmail(localStorage.getItem('aarambh_smtp_email') || 'aarambhinstitute46@gmail.com');
+        }
+      } catch (e) {
+        setSmtpEmail(localStorage.getItem('aarambh_smtp_email') || 'aarambhinstitute46@gmail.com');
+      }
+    };
+    
+    if (loggedInUser?.role === 'admin') {
+      fetchSmtpSettings();
+    }
+  }, [loggedInUser, API_URL, authHeaders]);
+
+  const handleSaveSmtpSettings = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`${API_URL}/admin/smtp-settings`, {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({ email: smtpEmail, password: smtpPassword })
+      });
+      if (res.ok) {
+        addToast('SMTP settings updated successfully!', 'success');
+        setSmtpPassword('');
+      } else {
+        addToast('Failed to update SMTP settings', 'danger');
+      }
+    } catch (e) {
+      localStorage.setItem('aarambh_smtp_email', smtpEmail);
+      addToast('SMTP configuration simulated locally!', 'success');
+    }
+  };
 
   useEffect(() => {
     // Poll WhatsApp status every 3 seconds if not connected
@@ -164,6 +210,43 @@ const Settings = () => {
           {(loggedInUser?.role === 'admin' || loggedInUser?.role === 'teacher') && (
             <div style={{ marginBottom: '2rem' }}>
               <WhatsAppStatus />
+            </div>
+          )}
+
+          {loggedInUser?.role === 'admin' && (
+            <div className="prof-card" style={{ marginBottom: '2rem' }}>
+              <h3 style={{ margin: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Cloud size={18} /> Email Notification Settings (Gmail SMTP)
+              </h3>
+              <form onSubmit={handleSaveSmtpSettings} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <label className="prof-label" style={{ marginBottom: '0.4rem', display: 'block' }}>Gmail Address</label>
+                    <input 
+                      type="email" 
+                      value={smtpEmail} 
+                      onChange={e => setSmtpEmail(e.target.value)} 
+                      placeholder="aarambhinstitute46@gmail.com" 
+                      className="prof-input"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="prof-label" style={{ marginBottom: '0.4rem', display: 'block' }}>Gmail App Password / Passkey</label>
+                    <input 
+                      type="password" 
+                      value={smtpPassword} 
+                      onChange={e => setSmtpPassword(e.target.value)} 
+                      placeholder="••••••••••••••••" 
+                      className="prof-input"
+                    />
+                  </div>
+                </div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  To link your Gmail, you must generate a 16-character <strong>App Password</strong> in your Google Account Security settings instead of using your main account password.
+                </div>
+                <button type="submit" className="prof-btn" style={{ alignSelf: 'flex-start' }}>Save SMTP Configuration</button>
+              </form>
             </div>
           )}
 

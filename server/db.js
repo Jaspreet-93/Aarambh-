@@ -136,6 +136,12 @@ const db = new sqlite3.Database(dbPath, (err) => {
         date TEXT NOT NULL
       )`);
 
+      // System Settings Table
+      db.run(`CREATE TABLE IF NOT EXISTS system_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT
+      )`);
+
       console.log('Database schema ensured.');
     });
   }
