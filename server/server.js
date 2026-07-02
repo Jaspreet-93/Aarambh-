@@ -613,38 +613,68 @@ app.put('/api/fees/:id/pay', authenticateToken, (req, res) => {
 
 // Send automatic fee reminders to all students with pending fees
 app.post('/api/fees/remind-pending', async (req, res) => {
-  db.all(`SELECT fees.*, users.name, users.parentPhone FROM fees JOIN users ON fees.student_id = users.id WHERE fees.status != 'Paid'`, [], async (err, rows) => {
+  db.all(`SELECT fees.*, users.name, users.parentPhone, users.email FROM fees JOIN users ON fees.student_id = users.id WHERE fees.status != 'Paid'`, [], async (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     
     let sentCount = 0;
     let failedCount = 0;
+    let emailSentCount = 0;
     
     for (const row of rows) {
-      if (!row.parentPhone) continue;
-      
       const dueAmount = row.total - row.paid;
       const message = `Dear Parent, this is a reminder from Aarambh that the tuition fee of Rs. ${dueAmount} for ${row.name} for the month of ${row.month || 'Current'} is currently pending. Please clear the dues at your earliest convenience. Thank you!`;
       
-      if (waStatus === 'CONNECTED' && waClient) {
-        try {
-          let phone = row.parentPhone.replace(/\D/g, '');
-          if (phone.length === 10) phone = `91${phone}`;
-          const chatId = `${phone}@c.us`;
-          
-          await waClient.sendMessage(chatId, message);
+      // 1. Send via WhatsApp if phone exists
+      if (row.parentPhone) {
+        if (waStatus === 'CONNECTED' && waClient) {
+          try {
+            let phone = row.parentPhone.replace(/\D/g, '');
+            if (phone.length === 10) phone = `91${phone}`;
+            const chatId = `${phone}@c.us`;
+            
+            await waClient.sendMessage(chatId, message);
+            sentCount++;
+          } catch (e) {
+            console.error(`[WhatsApp Fee Reminder Error] for ${row.name}:`, e);
+            failedCount++;
+          }
+        } else {
+          // Simulated send if not connected
           sentCount++;
-        } catch (e) {
-          console.error(`[WhatsApp Fee Reminder Error] for ${row.name}:`, e);
-          failedCount++;
         }
-      } else {
-        // Simulated send if not connected
-        sentCount++;
+      }
+
+      // 2. Send via Email if email exists
+      if (row.email && transporter) {
+        try {
+          const emailInfo = await transporter.sendMail({
+            from: '"Aarambh System" <admin@aarambh.edu>',
+            to: row.email,
+            subject: `⚠️ FEE DUE REMINDER: Aarambh Tuition - ${row.month || 'Current'} Month`,
+            text: message,
+            html: `<div style="font-family: sans-serif; padding: 20px; border: 1px solid #eaeaea; border-radius: 8px; max-width: 600px; margin: 0 auto;">
+                     <h2 style="color: #D0021B; margin-top: 0;">Tuition Fee Due Reminder</h2>
+                     <p>Dear Parent,</p>
+                     <p style="font-size: 15px; color: #333; line-height: 1.6;">
+                       This is a formal reminder that the tuition fee of <strong>Rs. ${dueAmount}</strong> for <strong>${row.name}</strong> for the month of <strong>${row.month || 'Current'}</strong> is currently pending.
+                     </p>
+                     <p>Please clear the outstanding dues at your earliest convenience.</p>
+                     <p>Thank you,<br/>Aarambh Management</p>
+                     <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+                     <small style="color: #999;">This is an automated administrative reminder. Please do not reply directly to this email.</small>
+                   </div>`
+          });
+          const previewUrl = nodemailer.getTestMessageUrl(emailInfo);
+          console.log(`[EMAIL REMINDER SENT] to ${row.email}. Preview: ${previewUrl}`);
+          emailSentCount++;
+        } catch(e) {
+          console.error(`[Email Reminder Error] for ${row.name}:`, e);
+        }
       }
     }
     
-    logAction('FEE_REMINDERS_SENT', `Triggered bulk reminders. Sent: ${sentCount}, Failed: ${failedCount}`);
-    res.json({ success: true, sentCount, failedCount, simulated: waStatus !== 'CONNECTED' });
+    logAction('FEE_REMINDERS_SENT', `Triggered bulk reminders. WhatsApp Sent: ${sentCount}, Email Sent: ${emailSentCount}, Failed: ${failedCount}`);
+    res.json({ success: true, sentCount, emailSentCount, failedCount, simulated: waStatus !== 'CONNECTED' });
   });
 });
 
@@ -832,31 +862,40 @@ app.post('/api/sms', async (req, res) => {
     }
   }
 
-  // 3. Fallback to Ethereal Email Simulation
-  if (!transporter) {
-    return res.status(500).json({ success: false, error: 'Email fallback system not ready yet.' });
-  }
+  // 3. Email Channel or Fallback to Ethereal Email Simulation
+  if (channel === 'Email' || !transporter) {
+    if (!transporter) {
+      return res.status(500).json({ success: false, error: 'Email system not ready yet.' });
+    }
 
-  try {
-    const info = await transporter.sendMail({
-      from: '"Aarambh System" <admin@aarambh.edu>',
-      to: `${to}@example.com`,
-      subject: "New Message from Aarambh",
-      text: message,
-    });
-    
-    const url = nodemailer.getTestMessageUrl(info);
-    console.log(`[REAL MESSAGE SENT] Preview URL: ${url}`);
-    
-    res.json({ 
-      success: true, 
-      simulated: true, 
-      message: 'Message simulated successfully via Ethereal',
-      previewUrl: url 
-    });
-  } catch (error) {
-    console.error('[EMAIL ERROR]', error);
-    res.status(500).json({ success: false, error: error.message });
+    try {
+      const emailRecipient = to.includes('@') ? to : `${to}@example.com`;
+      const info = await transporter.sendMail({
+        from: '"Aarambh System" <admin@aarambh.edu>',
+        to: emailRecipient,
+        subject: "New Message from Aarambh",
+        text: message,
+        html: `<div style="font-family: sans-serif; padding: 20px; border: 1px solid #eaeaea; border-radius: 8px;">
+                 <h2 style="color: #4A90E2; margin-top: 0;">Aarambh Notification Alert</h2>
+                 <p style="font-size: 16px; color: #333; line-height: 1.6;">${message}</p>
+                 <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+                 <small style="color: #999;">This is an automated email from Aarambh tuition center.</small>
+               </div>`
+      });
+      
+      const url = nodemailer.getTestMessageUrl(info);
+      console.log(`[EMAIL SENT] Delivered to ${emailRecipient}. Preview URL: ${url}`);
+      
+      return res.json({ 
+        success: true, 
+        simulated: true, 
+        message: 'Delivered via Email Notification',
+        previewUrl: url 
+      });
+    } catch (error) {
+      console.error('[EMAIL ERROR]', error);
+      return res.status(500).json({ success: false, error: error.message });
+    }
   }
 });
 

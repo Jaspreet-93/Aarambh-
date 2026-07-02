@@ -189,6 +189,7 @@ const Messages = () => {
                     required
                   >
                     <option value="Auto-WhatsApp">Auto-WhatsApp Robot (Default)</option>
+                    <option value="Email">Email Notification (Ethereal test sandbox)</option>
                     <option value="SMS" disabled>Cellular SMS (Disabled by User)</option>
                   </select>
                 </div>
