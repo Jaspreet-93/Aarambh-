@@ -698,7 +698,7 @@ app.post('/api/library', authenticateToken, upload.single('file'), (req, res) =>
 });
 
 // Check WhatsApp Status
-app.get('/api/whatsapp/status', authenticateToken, (req, res) => {
+app.get('/api/whatsapp/status', (req, res) => {
   res.json({ status: waStatus, qr: waQrDataUrl });
 });
 

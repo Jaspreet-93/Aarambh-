@@ -2,6 +2,7 @@ import React, { useContext, useState } from 'react';
 import { AppContext } from '../context/AppContext';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
+import WhatsAppStatus from '../components/WhatsAppStatus';
 
 const Messages = () => {
   const { messages, students, classes, sendMessage, announcements, addAnnouncement, deleteAnnouncement } = useContext(AppContext);
@@ -126,7 +127,9 @@ const Messages = () => {
         </div>
 
         {activeSubTab === 'dm' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            <WhatsAppStatus />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
             
             <div className="prof-card">
               <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1.5rem', marginTop: 0 }}>Compose Direct Message</h2>
@@ -239,10 +242,11 @@ const Messages = () => {
                     </div>
                   ))
                 )}
-              </div>
             </div>
           </div>
-        )}
+        </div>
+      </div>
+    )}
 
         {activeSubTab === 'announcements' && (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>

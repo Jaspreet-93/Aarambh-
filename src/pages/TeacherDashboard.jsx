@@ -3,6 +3,7 @@ import { AppContext } from '../context/AppContext';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import StatCard from '../components/StatCard';
+import WhatsAppStatus from '../components/WhatsAppStatus';
 import { Users, CheckSquare, BookOpen, Clock, Bell, Calendar as CalendarIcon, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -99,6 +100,8 @@ const TeacherDashboard = () => {
                 {myAnnouncements.length === 0 && <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No announcements.</p>}
               </div>
             </div>
+
+            <WhatsAppStatus />
           </div>
 
         </div>
