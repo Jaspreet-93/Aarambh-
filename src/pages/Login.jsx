@@ -12,6 +12,8 @@ const Login = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [savedStudents, setSavedStudents] = useState([]);
+  const [savedAdmins, setSavedAdmins] = useState([]);
+  const [savedTeachers, setSavedTeachers] = useState([]);
   
   const [rememberMe, setRememberMe] = useState(true);
   
@@ -26,6 +28,13 @@ const Login = () => {
   useEffect(() => {
     const list = JSON.parse(localStorage.getItem('aarambh_students') || '[]');
     setSavedStudents(list);
+
+    const allUsers = JSON.parse(localStorage.getItem('aarambh_users') || '[]');
+    const admins = allUsers.filter(u => u.role === 'admin');
+    const teachers = allUsers.filter(u => u.role === 'teacher');
+    setSavedAdmins(admins);
+    setSavedTeachers(teachers);
+
     resetForm('admin');
   }, []);
 
@@ -421,9 +430,64 @@ const Login = () => {
             </div>
           </div>
         )}
+
+        {!isRegisterMode && activeTab === 'admin' && savedAdmins.length > 0 && (
+          <div style={{ marginTop: '1.5rem', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ width: '100%', height: '1px', background: 'var(--border-color)', margin: '0.5rem 0' }}></div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.8rem' }}>Quick Admin Login</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'center', maxHeight: '120px', overflowY: 'auto', padding: '4px', width: '100%' }}>
+              {savedAdmins.map(a => (
+                <button
+                  key={a.id}
+                  type="button"
+                  className="prof-btn prof-btn-secondary"
+                  style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '20px' }}
+                  onClick={() => {
+                    setUsername(a.username || a.name);
+                    setPassword('');
+                    setError('');
+                    setTimeout(() => {
+                      document.getElementById('password-input')?.focus();
+                    }, 50);
+                  }}
+                >
+                  👑 {a.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!isRegisterMode && activeTab === 'teacher' && savedTeachers.length > 0 && (
+          <div style={{ marginTop: '1.5rem', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ width: '100%', height: '1px', background: 'var(--border-color)', margin: '0.5rem 0' }}></div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.8rem' }}>Quick Teacher Login</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'center', maxHeight: '120px', overflowY: 'auto', padding: '4px', width: '100%' }}>
+              {savedTeachers.map(t => (
+                <button
+                  key={t.id}
+                  type="button"
+                  className="prof-btn prof-btn-secondary"
+                  style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '20px' }}
+                  onClick={() => {
+                    setUsername(t.username || t.name);
+                    setPassword('');
+                    setError('');
+                    setTimeout(() => {
+                      document.getElementById('password-input')?.focus();
+                    }, 50);
+                  }}
+                >
+                  💼 {t.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {!isRegisterMode && activeTab === 'teacher' && (
           <div style={{ marginTop: '1.5rem', color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center' }}>
-            Staff login. Username: <strong>teacher</strong> &bull; Password: <strong>1526</strong>
+            Staff login. Username: <strong>teacher</strong> &bull; Password: <strong>pass</strong>
           </div>
         )}
         
